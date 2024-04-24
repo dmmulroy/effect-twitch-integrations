@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import type { Jwt } from "./jwt";
 
 export const getLibraryPlaylists = (
-  developerToken: string,
+  developerToken: Jwt,
   musicUesrToken: string,
 ) => {
   return Effect.tryPromise({
