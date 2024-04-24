@@ -1,0 +1,16 @@
+{
+  "name": "effect-apple-music",
+  "module": "src/index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "effect": "^3.0.3",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
