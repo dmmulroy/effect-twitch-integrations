@@ -10,8 +10,10 @@ import {
 
 export type SignedJwt = string & Brand.Brand<"SignedJwt">;
 export const SignedJwt = Brand.nominal<SignedJwt>();
+
 export type VerifiedJwt = SignedJwt & Brand.Brand<"ValidatedJwt">;
 export const VerifiedJwt = Brand.nominal<VerifiedJwt>();
+
 export type Jwt = SignedJwt | VerifiedJwt;
 
 export type SignInput = Readonly<

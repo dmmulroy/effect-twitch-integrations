@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <script async src="https://js-cdn.music.apple.com/musickit/v3/musickit.js"></script>
+
+  <script>
+    document.addEventListener("musickitloaded", async function () {
+      const signInButton = document.getElementById("sign-in-button");
+
+      signInButton.disabled = false
+
+
+      signInButton.onclick = () => {
+        const developerToken = document.getElementById("developer_token").value
+
+        MusicKit.configure({
+          developerToken,
+          app: {
+            name: "effect-apple-music",
+            build: "0.0.1",
+          },
+        }).then(() => {
+
+          MusicKit.getInstance()
+            .authorize()
+            .then((token) => {
+              console.log("authorized: ", token);
+            })
+            .catch(console.error);
+        }).catch(console.error)
+      };
+
+    });
+  </script>
+  <title>get-apple-music-token</title>
+</head>
+
+<body>
+  <h1>Get Apple Music Token</h1>
+  <h2>Please click below to authenticate with Apple Music</h2>
+  <input id="developer_token" type="text" placeholder="Enter your developer token" />
+  <button id="sign-in-button" disabled>Sign In</button>
+</body>
+
+</html>

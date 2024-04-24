@@ -1,7 +1,10 @@
 import { Effect } from "effect";
 import type { Jwt } from "./jwt";
 
-export const getLibraryPlaylists = (token: Jwt) => {
+export const getLibraryPlaylists = (
+  developerToken: string,
+  musicUesrToken: string,
+) => {
   return Effect.tryPromise({
     try: async (signal) => {
       const data = await fetch(
@@ -9,11 +12,15 @@ export const getLibraryPlaylists = (token: Jwt) => {
         {
           headers: {
             ["Content-Type"]: "application/json",
-            Authentication: `Bearer ${token}`,
+            Authorization: `Bearer ${developerToken}`,
+            ["Music-User-Token"]: musicUesrToken,
           },
           signal,
         },
-      ).then((res) => res.json());
+      ).then((res) => {
+        console.log(res.statusText);
+        return res.json();
+      });
 
       return data as string;
     },
