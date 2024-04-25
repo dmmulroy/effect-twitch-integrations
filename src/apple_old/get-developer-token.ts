@@ -1,5 +1,5 @@
 import { Effect, Config, Secret, Console } from "effect";
-import { JwtService, JwtServiceLive, type SignInput } from "../jwt";
+import { JwtService, JwtServiceLive, type SignInput } from "./jwt";
 
 const program = Effect.gen(function* (effect) {
   const jwtService = yield* effect(JwtService);

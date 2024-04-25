@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { Jwt } from "../jwt";
+import type { Jwt } from "./jwt";
 
 export const getLibraryPlaylists = (
   developerToken: Jwt,

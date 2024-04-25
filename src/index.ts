@@ -1,24 +1,29 @@
-import { Effect, Config, Secret, Console } from "effect";
-import { JwtService, JwtServiceLive, type SignInput } from "./jwt";
-import { getLibraryPlaylists } from "./get-playlists";
+import { Effect, Config, Secret, Console, Layer } from "effect";
+import { BunRuntime as BunTime } from "@effect/platform-bun";
 
-const program = Effect.gen(function* (effect) {
-  const jwtService = yield* effect(JwtService);
-  const developerToken = yield* effect(Config.secret("APPLE_DEVELOPER_TOKEN"));
-  const musicUserToken = yield* effect(Config.secret("APPLE_MUSIC_USER_TOKEN"));
-  const secret = yield* effect(Config.secret("APPLE_PRIVATE_KEY"));
+import accessToken from "./access-token";
+import {
+  DefaultRedirectServer,
+  RedirectServerService,
+} from "./redirect-server";
 
-  const jwt = yield* effect(
-    jwtService.verify(Secret.value(developerToken), Secret.value(secret)),
-  );
+const program = Effect.gen(function* () {
+  const redirectServerService = yield* RedirectServerService;
+  const clientId = yield* Config.string("SPOTIFY_CLIENT_ID");
+  const clientSecret = yield* Config.secret("SPOTIFY_CLIENT_SECRET");
 
-  yield* effect(
-    getLibraryPlaylists(jwt, Secret.value(musicUserToken)).pipe(
-      Effect.tap(Console.log),
-    ),
-  );
+  let redirectServer = yield* redirectServerService.make({
+    clientId,
+    clientSecret: Secret.value(clientSecret),
+    port: 3939,
+    redirectUri: "/spotify",
+  });
+
+  redirectServer = yield* redirectServer.start();
+
+  yield* Effect.never;
 });
 
-const runnable = Effect.provide(program, JwtServiceLive);
+const runnable = Effect.provide(program, DefaultRedirectServer);
 
-Effect.runPromise(runnable);
+BunTime.runMain(runnable);

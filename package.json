@@ -1,18 +1,20 @@
 {
-  "name": "effect-apple-music",
+  "name": "effect-spotify-music",
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
     "start": "bun run bun src/index.ts",
     "get-developer-token": "bun run bun src/get-developer-token.ts"
   },
-  "devDependencies": {
+  "devdependencies": {
     "@types/bun": "latest"
   },
-  "peerDependencies": {
+  "peerdependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@effect/platform-bun": "^0.33.10",
+    "@spotify/web-api-ts-sdk": "^1.2.0",
     "@types/jsonwebtoken": "^9.0.6",
     "effect": "^3.0.3",
     "jsonwebtoken": "^9.0.2"
