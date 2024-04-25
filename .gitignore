@@ -4,6 +4,7 @@
 **/access-token.*
 
 .envrc
+.direnv/
 
 # Logs
 
