@@ -3,7 +3,7 @@
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "start": "bun run bun src/index.ts",
+    "start": "bun run src/index.ts",
     "get-developer-token": "bun run bun src/get-developer-token.ts"
   },
   "devdependencies": {

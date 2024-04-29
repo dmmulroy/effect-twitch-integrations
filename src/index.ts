@@ -1,38 +1,27 @@
-import { randomBytes } from "crypto";
-import { Effect, Config, Secret, Console, Layer, Deferred } from "effect";
+import { Effect, Deferred, Layer, Console } from "effect";
 import { BunRuntime as BunTime } from "@effect/platform-bun";
 
-import accessToken from "./access-token";
-import {
-  DefaultRedirectServer,
-  RedirectServerService,
-} from "./redirect-server";
 import { Browser } from "./browser";
+import { RedirectServerService } from "./redirect-server-service";
+import { SpotifyConfigService } from "./spotify-config-service";
+
+const MainLive = Layer.merge(
+  SpotifyConfigService.live,
+  RedirectServerService.live,
+);
 
 Effect.gen(function* () {
-  const redirectServerService = yield* RedirectServerService;
-  const clientId = yield* Config.string("SPOTIFY_CLIENT_ID");
-  const clientSecret = yield* Config.secret("SPOTIFY_CLIENT_SECRET");
+  const redirectServer = yield* RedirectServerService;
+  const config = yield* SpotifyConfigService;
 
-  const redirectServer = yield* redirectServerService.make({
-    clientId,
-    clientSecret: Secret.value(clientSecret),
-    port: 3939,
-    redirectUri: "/spotify",
-  });
-
-  const runningRedirectServer = yield* redirectServer.start();
-  const mailbox = runningRedirectServer.mailbox;
-
-  const redirect_uri = "http://localhost:3939/spotify";
-  const csrfToken = randomBytes(256).toString("hex");
+  const mailbox = yield* redirectServer.getMailbox();
 
   const searchParams = new URLSearchParams({
     response_type: "code",
-    client_id: clientId,
+    client_id: config.clientId,
     scope: "user-read-private",
-    redirect_uri,
-    state: csrfToken,
+    redirect_uri: `http://localhost:${config.port}/${config.redirectServerPath}`,
+    state: "foo",
     show_dialog: "true",
   });
 
@@ -40,16 +29,9 @@ Effect.gen(function* () {
     `https://accounts.spotify.com/authorize?${searchParams.toString()}`,
   );
 
-  yield* Browser.open(authorizeUrl).pipe(
-    Effect.match({
-      onSuccess: () => console.log("browser opened successfully"),
-      onFailure: console.error,
-    }),
-  );
+  yield* Browser.open(authorizeUrl);
+  yield* Deferred.await(mailbox).pipe(Effect.tap(Console.log));
 
-  const code = yield* Deferred.await(mailbox);
-
-  console.log({ code });
-})
-  .pipe(Effect.provide(DefaultRedirectServer))
-  .pipe(BunTime.runMain);
+  // run forever
+  return yield* Effect.never;
+}).pipe(Effect.provide(MainLive), BunTime.runMain);
