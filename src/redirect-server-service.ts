@@ -18,17 +18,17 @@ export type RedirectServerOptions = Readonly<{
   redirectServerPath: string;
 }>;
 
-export type RedirectServerServiceDefinition = Readonly<{
+export type IRedirectServer = Readonly<{
   getMailbox: () => Effect.Effect<Deferred.Deferred<string, Error>, Error>;
   getCsrfToken: () => string;
 }>;
 
-export class RedirectServerService extends Context.Tag("redirect-server")<
-  RedirectServerService,
-  RedirectServerServiceDefinition
+export class RedirectServer extends Context.Tag("redirect-server")<
+  RedirectServer,
+  IRedirectServer
 >() {
-  static live = Layer.scoped(
-    RedirectServerService,
+  static Live = Layer.scoped(
+    RedirectServer,
     Effect.flatMap(SpotifyConfigService, (config) => {
       return Effect.gen(function* () {
         const mailbox = yield* Deferred.make<string, Error>();
@@ -53,7 +53,7 @@ export class RedirectServerService extends Context.Tag("redirect-server")<
           },
         );
 
-        return RedirectServerService.of({
+        return RedirectServer.of({
           getCsrfToken() {
             return csrfToken;
           },
@@ -69,7 +69,7 @@ export class RedirectServerService extends Context.Tag("redirect-server")<
         });
       });
     }),
-  ).pipe(Layer.provide(SpotifyConfigService.live));
+  ).pipe(Layer.provide(SpotifyConfigService.Live));
 }
 
 function makeRouter(

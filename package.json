@@ -15,6 +15,9 @@
   "dependencies": {
     "@effect/platform-bun": "^0.33.10",
     "@spotify/web-api-ts-sdk": "^1.2.0",
+    "@twurple/auth": "^7.1.0",
+    "@twurple/chat": "^7.1.0",
+    "@twurple/pubsub": "^7.1.0",
     "@types/jsonwebtoken": "^9.0.6",
     "effect": "^3.0.3",
     "jsonwebtoken": "^9.0.2"

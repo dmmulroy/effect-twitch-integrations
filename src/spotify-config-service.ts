@@ -11,7 +11,7 @@ export class SpotifyConfigService extends Context.Tag("spotify-config-service")<
   SpotifyConfigService,
   SpotifyConfigServiceDefinition
 >() {
-  static live = Layer.effect(
+  static Live = Layer.effect(
     SpotifyConfigService,
     Effect.gen(function* () {
       const clientId = yield* Config.string("SPOTIFY_CLIENT_ID");
