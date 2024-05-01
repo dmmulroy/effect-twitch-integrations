@@ -1,5 +1,6 @@
 import { SpotifyApi, type AccessToken } from "@spotify/web-api-ts-sdk";
-import accessToken from "./access-token";
+import { Context, Effect, Layer, Secret } from "effect";
+import { SpotifyConfigService } from "./spotify-config-service";
 
 const scopes = [
   // "ugc-image-upload",
@@ -24,10 +25,20 @@ const scopes = [
 ];
 
 // Choose one of the following:
-const sdk = SpotifyApi.withAccessToken(
-  process.env.SPOTIFY_CLIENT_ID as string,
-  accessToken,
-);
+/* 
 const result = await sdk.currentUser.profile();
 
-console.log(JSON.stringify(result, null, 2));
+console.log(JSON.stringify(result, null, 2)); */
+export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
+  SpotifyApiClient,
+  SpotifyApi
+>() {
+  static Live = Layer.scoped(
+    this,
+    Effect.gen(function* () {
+      const config = yield* SpotifyConfigService;
+
+      return SpotifyApi.withAccessToken(config.clientId, config.accessToken);
+    }),
+  ).pipe(Layer.provide(SpotifyConfigService.Live));
+}

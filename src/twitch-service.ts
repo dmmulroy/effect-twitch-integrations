@@ -7,6 +7,8 @@ import {
 import { ChatClient, LogLevel } from "@twurple/chat";
 import { PubSubClient } from "@twurple/pubsub";
 import { TwitchConfig } from "./twitch-config-service";
+import { ApiClient } from "@twurple/api";
+import { SongQueue } from "./song-queue";
 
 export type ITwitchService = Readonly<{
   sendMessage(message: string): Effect.Effect<void, Error>;
@@ -43,6 +45,18 @@ class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
   ).pipe(Layer.provide(TwitchConfig.Live));
 }
 
+class TwitchApiClient extends Context.Tag("twitch-api-client")<
+  TwitchApiClient,
+  ApiClient
+>() {
+  static Live = Layer.effect(
+    this,
+    Effect.map(TwitchAuthProvider, (authProvider) => {
+      return new ApiClient({ authProvider });
+    }),
+  ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
+}
+
 // Have compile time warning if Context.Tag is called with the same value more than once
 export class TwitchChatClient extends Context.Tag("twitch-chat-client")<
   TwitchChatClient,
@@ -72,14 +86,17 @@ class TwitchPubSubClient extends Context.Tag("twitch-pubsub-client")<
         logger: { name: "chat", minLevel: LogLevel.WARNING },
       });
     }),
-  ).pipe(Layer.provide(TwitchAuthProvider.RefreshingAuthProviderLive));
+  ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
 }
 
 const TwitchClientsLive = Layer.mergeAll(
   TwitchConfig.Live,
-  TwitchChatClient.Live,
+  TwitchApiClient.Live,
   TwitchPubSubClient.Live,
+  SongQueue.Live,
 );
+
+const songRequestRewardId = "1abfa295-f609-48f3-aaed-fd7a4b441e9e";
 
 export class TwitchService extends Context.Tag("twitch-service")<
   TwitchService,
@@ -89,39 +106,31 @@ export class TwitchService extends Context.Tag("twitch-service")<
     this,
     Effect.gen(function* () {
       const config = yield* TwitchConfig;
-      const chatClient = yield* TwitchChatClient;
-      // const pubsubClient = yield* TwitchPubSubClient;
+      const apiClient = yield* TwitchApiClient;
+      const pubSubClient = yield* TwitchPubSubClient;
+      const songQueue = yield* SongQueue;
 
-      // pubsubClient.onRedemption(config.broadcasterUsername, console.log);
-      //
+      pubSubClient.onRedemption(config.broadcasterId, async (redemption) => {
+        if (redemption.rewardId === songRequestRewardId) {
+          await apiClient.chat.sendChatMessage(
+            config.broadcasterId,
+            `@${redemption.userName} requested ${redemption.message}!`,
+          );
 
-      chatClient.connect();
-      yield* Effect.acquireRelease(
-        Effect.async((resume) => {
-          console.log("connect\n");
-          chatClient.onConnect(() => {
-            console.log("connected!\n");
-            resume(Effect.void);
-          });
-        }),
-        () =>
-          Effect.async((resume) => {
-            console.log("quit");
-            chatClient.onDisconnect(() => {
-              console.log("disconnected!\n");
-              resume(Effect.void);
-            });
-
-            chatClient.quit();
-          }),
-      );
+          const _exit = songQueue
+            .enqueue(redemption.message)
+            .pipe(Effect.runPromiseExit);
+        }
+      });
 
       return {
         sendMessage(message) {
           return Effect.tryPromise({
             try: async () => {
-              console.log("sendMessage\n");
-              return await chatClient.say("dmmulroy", message);
+              return apiClient.chat.sendChatMessage(
+                config.broadcasterId,
+                message,
+              );
             },
             catch: (error) => {
               return new Error(
