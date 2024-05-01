@@ -36,5 +36,5 @@ const MainLive = Layer.merge(SpotifyConfigService.Live, RedirectServer.Live);
 
 Effect.gen(function* () {
   const twitchService = yield* TwitchService;
-  return yield* twitchService.sendMessage("Hello Chat from EffectTS!");
+  yield* twitchService.sendMessage("Hello Chat from EffectTS!");
 }).pipe(Effect.provide(TwitchService.Live), Effect.runPromise);

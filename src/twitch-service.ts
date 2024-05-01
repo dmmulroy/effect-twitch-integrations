@@ -85,7 +85,7 @@ export class TwitchService extends Context.Tag("twitch-service")<
   TwitchService,
   ITwitchService
 >() {
-  static Live = Layer.effect(
+  static Live = Layer.scoped(
     this,
     Effect.gen(function* () {
       const config = yield* TwitchConfig;
@@ -93,13 +93,34 @@ export class TwitchService extends Context.Tag("twitch-service")<
       // const pubsubClient = yield* TwitchPubSubClient;
 
       // pubsubClient.onRedemption(config.broadcasterUsername, console.log);
+      //
 
       chatClient.connect();
+      yield* Effect.acquireRelease(
+        Effect.async((resume) => {
+          console.log("connect\n");
+          chatClient.onConnect(() => {
+            console.log("connected!\n");
+            resume(Effect.void);
+          });
+        }),
+        () =>
+          Effect.async((resume) => {
+            console.log("quit");
+            chatClient.onDisconnect(() => {
+              console.log("disconnected!\n");
+              resume(Effect.void);
+            });
+
+            chatClient.quit();
+          }),
+      );
 
       return {
         sendMessage(message) {
           return Effect.tryPromise({
             try: async () => {
+              console.log("sendMessage\n");
               return await chatClient.say("dmmulroy", message);
             },
             catch: (error) => {
