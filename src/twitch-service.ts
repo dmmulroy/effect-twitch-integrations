@@ -4,17 +4,15 @@ import {
   StaticAuthProvider,
   type AuthProvider,
 } from "@twurple/auth";
-import { ChatClient, LogLevel } from "@twurple/chat";
+import { LogLevel } from "@twurple/chat";
 import { PubSubClient } from "@twurple/pubsub";
 import { TwitchConfig } from "./twitch-config-service";
 import { ApiClient } from "@twurple/api";
-import { SongQueue } from "./song-queue";
+import { Message, MessageQueue } from "./song-queue";
+import { SpotifyApiClient } from "./spotify-service";
+import { EventSubWsListener } from "@twurple/eventsub-ws";
 
-export type ITwitchService = Readonly<{
-  sendMessage(message: string): Effect.Effect<void, Error>;
-}>;
-
-class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
+export class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
   TwitchAuthProvider,
   AuthProvider
 >() {
@@ -45,7 +43,7 @@ class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
   ).pipe(Layer.provide(TwitchConfig.Live));
 }
 
-class TwitchApiClient extends Context.Tag("twitch-api-client")<
+export class TwitchApiClient extends Context.Tag("twitch-api-client")<
   TwitchApiClient,
   ApiClient
 >() {
@@ -57,24 +55,7 @@ class TwitchApiClient extends Context.Tag("twitch-api-client")<
   ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
 }
 
-// Have compile time warning if Context.Tag is called with the same value more than once
-export class TwitchChatClient extends Context.Tag("twitch-chat-client")<
-  TwitchChatClient,
-  ChatClient
->() {
-  static Live = Layer.effect(
-    this,
-    Effect.map(TwitchAuthProvider, (authProvider) => {
-      return new ChatClient({
-        authProvider,
-        channels: ["dmmulroy"],
-        logger: { name: "chat", minLevel: LogLevel.WARNING },
-      });
-    }),
-  ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
-}
-
-class TwitchPubSubClient extends Context.Tag("twitch-pubsub-client")<
+export class TwitchPubSubClient extends Context.Tag("twitch-pubsub-client")<
   TwitchPubSubClient,
   PubSubClient
 >() {
@@ -89,14 +70,36 @@ class TwitchPubSubClient extends Context.Tag("twitch-pubsub-client")<
   ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
 }
 
+export class TwitchEventSubClient extends Context.Tag("twitch-pubsub-client")<
+  TwitchPubSubClient,
+  EventSubWsListener
+>() {
+  static Live = Layer.effect(
+    this,
+    Effect.gen(function* () {
+      const apiClient = yield* TwitchApiClient;
+
+      return new EventSubWsListener({
+        apiClient,
+      });
+    }),
+  ).pipe(Layer.provide(TwitchApiClient.Live));
+}
+
 const TwitchClientsLive = Layer.mergeAll(
   TwitchConfig.Live,
   TwitchApiClient.Live,
+  TwitchEventSubClient.Live,
   TwitchPubSubClient.Live,
-  SongQueue.Live,
+  MessageQueue.Live,
+  SpotifyApiClient.Live,
 );
 
 const songRequestRewardId = "1abfa295-f609-48f3-aaed-fd7a4b441e9e";
+
+export type ITwitchService = Readonly<{
+  sendMessage(message: string): Effect.Effect<void, Error>;
+}>;
 
 export class TwitchService extends Context.Tag("twitch-service")<
   TwitchService,
@@ -108,19 +111,39 @@ export class TwitchService extends Context.Tag("twitch-service")<
       const config = yield* TwitchConfig;
       const apiClient = yield* TwitchApiClient;
       const pubSubClient = yield* TwitchPubSubClient;
-      const songQueue = yield* SongQueue;
+      const eventSubClient = yield* TwitchEventSubClient;
+      const messageQueue = yield* MessageQueue;
+
+      eventSubClient.onChannelChatMessage(
+        config.broadcasterId,
+        config.broadcasterId,
+        (event) => {
+          Effect.gen(function* () {
+            if (event.messageText.startsWith("!")) {
+              if (event.messageText === "!song") {
+                yield* messageQueue.enqueue(Message.CurrentlyPlaying());
+              }
+            }
+          });
+        },
+      );
 
       pubSubClient.onRedemption(config.broadcasterId, async (redemption) => {
-        if (redemption.rewardId === songRequestRewardId) {
-          await apiClient.chat.sendChatMessage(
-            config.broadcasterId,
-            `@${redemption.userName} requested ${redemption.message}!`,
-          );
+        Effect.gen(function* () {
+          if (redemption.rewardId === songRequestRewardId) {
+            // TODO: Add error logging
+            yield* Effect.tryPromise(() =>
+              apiClient.chat.sendChatMessage(
+                config.broadcasterId,
+                `@${redemption.userName} requested ${redemption.message}!`,
+              ),
+            );
 
-          const _exit = songQueue
-            .enqueue(redemption.message)
-            .pipe(Effect.runPromiseExit);
-        }
+            yield* messageQueue.enqueue(
+              Message.SongRequest({ uri: redemption.message }),
+            );
+          }
+        });
       });
 
       return {
@@ -141,5 +164,5 @@ export class TwitchService extends Context.Tag("twitch-service")<
         },
       };
     }),
-  ).pipe(Layer.provide(TwitchClientsLive));
+  );
 }

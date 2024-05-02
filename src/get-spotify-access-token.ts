@@ -9,6 +9,24 @@ const BunTime = {
   funTime: BunRuntime.runMain,
 };
 
+const scopes = [
+  "user-read-playback-state",
+  "user-modify-playback-state",
+  "user-read-currently-playing",
+  "app-remote-control",
+  "streaming",
+  "playlist-read-private",
+  "playlist-read-collaborative",
+  "playlist-modify-private",
+  "playlist-modify-public",
+  "user-read-playback-position",
+  "user-top-read",
+  "user-read-recently-played",
+  "user-library-modify",
+  "user-library-read",
+  "user-read-email",
+  "user-read-private",
+];
 // btw, design pill: your "program" can be "Layer.discardEffect(program)" and your main function can be "Layer.launch(fullLayer)" this automatically puts a never so you don't have to
 const MainLive = Layer.merge(SpotifyConfigService.Live, RedirectServer.Live);
 
@@ -21,7 +39,7 @@ const getAccessToken = Effect.gen(function* () {
   const searchParams = new URLSearchParams({
     response_type: "code",
     client_id: config.clientId,
-    scope: "user-read-private",
+    scope: scopes.join(" "),
     redirect_uri: `http://localhost:${config.port}/${config.redirectServerPath}`,
     state: "foo",
     show_dialog: "true",

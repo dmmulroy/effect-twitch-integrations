@@ -10,14 +10,14 @@ const BunTime = {
   funTime: BunRuntime.runMain,
 };
 
-// Effect.gen(function* () {
-//   const twitchService = yield* TwitchService;
-//   yield* twitchService.sendMessage("Hello Chat from EffectTS!");
-//
-//   return yield* Effect.never;
-// }).pipe(Effect.provide(TwitchService.Live), BunTime.funTime);
-
 Effect.gen(function* () {
+  const twitchService = yield* TwitchService;
+  yield* twitchService.sendMessage("Hello Chat from EffectTS!");
+
+  return yield* Effect.never;
+}).pipe(Effect.provide(TwitchService.Live), BunTime.funTime);
+
+/* Effect.gen(function* () {
   const spotifyClient = yield* SpotifyApiClient;
 
   const profile = yield* Effect.tryPromise(() =>
@@ -25,4 +25,4 @@ Effect.gen(function* () {
   );
 
   console.log({ profile });
-}).pipe(Effect.provide(SpotifyApiClient.Live), BunTime.funTime);
+}).pipe(Effect.provide(SpotifyApiClient.Live), BunTime.funTime); */

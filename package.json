@@ -18,6 +18,7 @@
     "@twurple/api": "^7.1.0",
     "@twurple/auth": "^7.1.0",
     "@twurple/chat": "^7.1.0",
+    "@twurple/eventsub-ws": "^7.1.0",
     "@twurple/pubsub": "^7.1.0",
     "@types/jsonwebtoken": "^9.0.6",
     "effect": "^3.0.3",
