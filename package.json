@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "get-developer-token": "bun run bun src/get-developer-token.ts"
+    "get-spotify-access-token": "bun run src/get-spotify-access-token.ts"
   },
   "devdependencies": {
     "@types/bun": "latest"

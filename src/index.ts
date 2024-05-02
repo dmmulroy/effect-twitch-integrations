@@ -1,7 +1,7 @@
 import { Effect, Deferred, Layer, Console } from "effect";
 import { BunRuntime } from "@effect/platform-bun";
 import { Browser } from "./browser";
-import { RedirectServer, program } from "./redirect-server-service";
+import { RedirectServer } from "./redirect-server-service";
 import { SpotifyConfigService } from "./spotify-config-service";
 import { TwitchChatClient, TwitchService } from "./twitch-service";
 import { SpotifyApiClient } from "./spotify-service";
@@ -16,17 +16,13 @@ const BunTime = {
 //
 //   return yield* Effect.never;
 // }).pipe(Effect.provide(TwitchService.Live), BunTime.funTime);
-//
-// Effect.gen(function* () {
-//   const spotifyClient = yield* SpotifyApiClient;
-//
-//   yield* Effect.tryPromise(async () => {
-//     const profile = await spotifyClient.currentUser.profile();
-//
-//     console.log({ profile });
-//   });
-// }).pipe(Effect.provide(SpotifyApiClient.Live), Effect.runPromise);
-//
-//
 
-BunTime.funTime(program);
+Effect.gen(function* () {
+  const spotifyClient = yield* SpotifyApiClient;
+
+  const profile = yield* Effect.tryPromise(() =>
+    spotifyClient.currentUser.profile(),
+  );
+
+  console.log({ profile });
+}).pipe(Effect.provide(SpotifyApiClient.Live), BunTime.funTime);

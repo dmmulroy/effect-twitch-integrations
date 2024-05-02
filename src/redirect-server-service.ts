@@ -7,10 +7,11 @@ import {
   Option,
   Function,
   Secret,
-  Console,
 } from "effect";
 import { SpotifyConfigService } from "./spotify-config-service";
 import { Browser } from "./browser";
+import { requestAccessToken } from "./spotify-service";
+import { BunRuntime } from "@effect/platform-bun";
 
 export type RedirectServerOptions = Readonly<{
   clientId: string;
@@ -128,32 +129,3 @@ function makeRouter(
     }).pipe(Effect.runPromise);
   };
 }
-
-// btw, design pill: your "program" can be "Layer.discardEffect(program)" and your main function can be "Layer.launch(fullLayer)" this automatically puts a never so you don't have to
-const MainLive = Layer.merge(SpotifyConfigService.Live, RedirectServer.Live);
-
-export const program = Effect.gen(function* () {
-  const redirectServer = yield* RedirectServer;
-  const config = yield* SpotifyConfigService;
-
-  const mailbox = yield* redirectServer.getMailbox();
-
-  const searchParams = new URLSearchParams({
-    response_type: "code",
-    client_id: config.clientId,
-    scope: "user-read-private",
-    redirect_uri: `http://localhost:${config.port}/${config.redirectServerPath}`,
-    state: "foo",
-    show_dialog: "true",
-  });
-
-  const authorizeUrl = new URL(
-    `https://accounts.spotify.com/authorize?${searchParams.toString()}`,
-  );
-
-  yield* Browser.open(authorizeUrl);
-  yield* Deferred.await(mailbox).pipe(Effect.tap(Console.log));
-
-  // run forever
-  return yield* Effect.never;
-}).pipe(Effect.provide(MainLive));
