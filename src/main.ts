@@ -14,19 +14,10 @@ const BunTime = {
   funTime: BunRuntime.runMain,
 };
 
-const MainLive = Layer.mergeAll(
-  TwitchConfig.Live,
-  TwitchApiClient.Live,
-  TwitchEventSubClient.Live,
-  TwitchPubSubClient.Live,
-  MessageQueue.Live,
-  SpotifyApiClient.Live,
-);
-
 const main = Effect.gen(function* () {
   yield* TwitchService;
 
   return yield* Effect.never;
-}).pipe(Effect.provide(MainLive));
+}).pipe(Effect.provide(TwitchService.Live));
 
 export const run = () => BunTime.funTime(main);

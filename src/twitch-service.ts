@@ -70,8 +70,8 @@ export class TwitchPubSubClient extends Context.Tag("twitch-pubsub-client")<
   ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
 }
 
-export class TwitchEventSubClient extends Context.Tag("twitch-pubsub-client")<
-  TwitchPubSubClient,
+export class TwitchEventSubClient extends Context.Tag("twitch-eventsub-client")<
+  TwitchEventSubClient,
   EventSubWsListener
 >() {
   static Live = Layer.effect(
@@ -92,7 +92,6 @@ const TwitchClientsLive = Layer.mergeAll(
   TwitchEventSubClient.Live,
   TwitchPubSubClient.Live,
   MessageQueue.Live,
-  SpotifyApiClient.Live,
 );
 
 const songRequestRewardId = "1abfa295-f609-48f3-aaed-fd7a4b441e9e";
@@ -164,5 +163,5 @@ export class TwitchService extends Context.Tag("twitch-service")<
         },
       };
     }),
-  );
+  ); //.pipe(Layer.provide(TwitchClientsLive));
 }

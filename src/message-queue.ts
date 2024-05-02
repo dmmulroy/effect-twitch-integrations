@@ -23,6 +23,28 @@ interface IMessageQueue {
   readonly enqueue: (message: Message) => Effect.Effect<void, Error>;
 }
 
+function handleCurrentlyPlaying() {
+  const _ = Effect.gen(function* () {
+    const spotifyApiClient = yield* SpotifyApiClient;
+    const twitchService = yield* TwitchService;
+
+    const playing: PlaybackState = yield* Effect.tryPromise(() =>
+      spotifyApiClient.player.getCurrentlyPlayingTrack(undefined),
+    );
+    const item = playing.item;
+
+    if (!("album" in item)) {
+      return yield* Effect.fail(new Error("Invalid Item"));
+    }
+
+    yield* twitchService.sendMessage(
+      `The currently playing song is ${item.name} by ${item.album.artists.map(({ name }) => name).join(", and ")}`,
+    );
+  }).pipe(
+    Effect.provide(Layer.mergeAll(SpotifyApiClient.Live, TwitchService.Live)),
+  );
+}
+
 export class MessageQueue extends Context.Tag("message-queue")<
   MessageQueue,
   IMessageQueue
@@ -30,9 +52,6 @@ export class MessageQueue extends Context.Tag("message-queue")<
   static Live = Layer.scoped(
     this,
     Effect.gen(function* () {
-      const spotifyApiClient = yield* SpotifyApiClient;
-      const twitchService = yield* TwitchService;
-
       const queue = yield* Effect.acquireRelease(
         Queue.unbounded<Message>(),
         (queue) => {
@@ -46,28 +65,14 @@ export class MessageQueue extends Context.Tag("message-queue")<
           Effect.gen(function* () {
             const message = yield* Queue.take(queue);
 
-            yield* Message.$match({
-              CurrentlyPlaying: () =>
-                Effect.gen(function* () {
-                  const playing: PlaybackState = yield* Effect.tryPromise(() =>
-                    spotifyApiClient.player.getCurrentlyPlayingTrack(undefined),
-                  );
-                  const item = playing.item;
-
-                  if (!("album" in item)) {
-                    return yield* Effect.fail(new Error("Invalid Item"));
-                  }
-
-                  yield* twitchService.sendMessage(
-                    `The currently playing song is ${item.name} by ${item.album.artists.map(({ name }) => name).join(", and ")}`,
-                  );
-                }),
-              SongRequest: () =>
-                Effect.gen(function* () {
-                  yield* twitchService.sendMessage(
-                    `This operation is not currently supported - sorry!`,
-                  );
-                }),
+            const _ = yield* Message.$match({
+              CurrentlyPlaying: () => handleCurrentlyPlaying(),
+              SongRequest: () => Effect.void,
+              // Effect.gen(function* () {
+              //   yield* twitchService.sendMessage(
+              //     `This operation is not currently supported - sorry!`,
+              //   );
+              // }),
             })(message);
 
             return yield* Effect.void;
