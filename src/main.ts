@@ -7,7 +7,7 @@ import {
   TwitchService,
 } from "./twitch-service";
 import { TwitchConfig } from "./twitch-config-service";
-import { MessageQueue } from "./song-queue";
+import { MessageQueue } from "./message-queue";
 import { SpotifyApiClient } from "./spotify-service";
 
 const BunTime = {

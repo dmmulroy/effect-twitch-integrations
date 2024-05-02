@@ -8,7 +8,7 @@ import { LogLevel } from "@twurple/chat";
 import { PubSubClient } from "@twurple/pubsub";
 import { TwitchConfig } from "./twitch-config-service";
 import { ApiClient } from "@twurple/api";
-import { Message, MessageQueue } from "./song-queue";
+import { Message, MessageQueue } from "./message-queue";
 import { SpotifyApiClient } from "./spotify-service";
 import { EventSubWsListener } from "@twurple/eventsub-ws";
 
