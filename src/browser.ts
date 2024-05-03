@@ -2,13 +2,8 @@ import { $ } from "bun";
 import { Effect } from "effect";
 
 export const Browser = {
-  open: (uri: URL) => {
-    return Effect.tryPromise({
-      try: async () => $`open ${uri.toString()}`,
-      catch: (error) =>
-        new Error(
-          `An error occured while trying to open the browser: ${error}`,
-        ),
-    });
-  },
+  open: (uri: URL) =>
+    Effect.promise(() => $`open ${uri.toString()}`).pipe(
+      Effect.withSpan("Browser.open", { attributes: { uri: uri.toString() } })
+    ),
 } as const;

@@ -46,7 +46,7 @@ const getAccessToken = Effect.gen(function* () {
   });
 
   const authorizeUrl = new URL(
-    `https://accounts.spotify.com/authorize?${searchParams.toString()}`,
+    `https://accounts.spotify.com/authorize?${searchParams.toString()}`
   );
 
   yield* Browser.open(authorizeUrl);
@@ -55,11 +55,11 @@ const getAccessToken = Effect.gen(function* () {
 
   const accessToken = yield* requestAccessToken(code);
 
-  yield* Effect.tryPromise(() =>
+  yield* Effect.promise(() =>
     Bun.write(
       "src/do_not_open_on_stream/access-token.json",
-      JSON.stringify(accessToken, null, 2),
-    ),
+      JSON.stringify(accessToken, null, 2)
+    )
   );
 }).pipe(Effect.provide(MainLive));
 
