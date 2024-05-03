@@ -40,6 +40,13 @@ export type IMessagePubSub = Readonly<{
   >;
 }>;
 
+export class MessagePubSub extends Context.Tag("message-pubsub")<
+  MessagePubSub,
+  IMessagePubSub
+>() {
+  static Live = Layer.scoped(this, make());
+}
+
 function make() {
   return Effect.gen(function* () {
     const pubsub: PubSub.PubSub<Message> = yield* Effect.acquireRelease(
@@ -103,11 +110,4 @@ function make() {
         }),
     });
   });
-}
-
-export class MessagePubSub extends Context.Tag("message-pubsub")<
-  MessagePubSub,
-  IMessagePubSub
->() {
-  static Live = Layer.scoped(this, make());
 }
