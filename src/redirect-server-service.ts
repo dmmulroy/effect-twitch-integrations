@@ -8,7 +8,7 @@ import {
   Function,
   Secret,
 } from "effect";
-import { SpotifyConfigService } from "./spotify-config-service";
+import { SpotifyConfig } from "./spotify/spotify-config";
 
 export type RedirectServerOptions = Readonly<{
   clientId: string;
@@ -29,7 +29,7 @@ export class RedirectServer extends Context.Tag("redirect-server")<
 >() {
   static Live = Layer.scoped(
     RedirectServer,
-    Effect.flatMap(SpotifyConfigService, (config) => {
+    Effect.flatMap(SpotifyConfig, (config) => {
       return Effect.gen(function* () {
         const mailbox = yield* Deferred.make<string, Error>();
         const csrfToken = randomBytes(256).toString("hex");
@@ -70,7 +70,7 @@ export class RedirectServer extends Context.Tag("redirect-server")<
         });
       });
     }),
-  ).pipe(Layer.provide(SpotifyConfigService.Live));
+  ).pipe(Layer.provide(SpotifyConfig.Live));
 }
 
 function makeRouter(

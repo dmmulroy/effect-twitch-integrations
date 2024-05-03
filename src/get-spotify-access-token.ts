@@ -1,8 +1,8 @@
 import { Deferred, Effect, Layer } from "effect";
 import { RedirectServer } from "./redirect-server-service";
-import { SpotifyConfigService } from "./spotify-config-service";
+import { SpotifyConfig } from "./spotify/spotify-config";
 import { Browser } from "./browser";
-import { requestAccessToken } from "./spotify-service";
+import { requestAccessToken } from "./spotify/spotify-service";
 import { BunRuntime } from "@effect/platform-bun";
 
 const BunTime = {
@@ -28,10 +28,10 @@ const scopes = [
   "user-read-private",
 ];
 
-const MainLive = Layer.merge(SpotifyConfigService.Live, RedirectServer.Live);
+const MainLive = Layer.merge(SpotifyConfig.Live, RedirectServer.Live);
 
 const getAccessToken = Effect.gen(function* () {
-  const config = yield* SpotifyConfigService;
+  const config = yield* SpotifyConfig;
   const redirectServer = yield* RedirectServer;
 
   const mailbox = yield* redirectServer.getMailbox();
@@ -46,7 +46,7 @@ const getAccessToken = Effect.gen(function* () {
   });
 
   const authorizeUrl = new URL(
-    `https://accounts.spotify.com/authorize?${searchParams.toString()}`
+    `https://accounts.spotify.com/authorize?${searchParams.toString()}`,
   );
 
   yield* Browser.open(authorizeUrl);
@@ -58,8 +58,8 @@ const getAccessToken = Effect.gen(function* () {
   yield* Effect.promise(() =>
     Bun.write(
       "src/do_not_open_on_stream/access-token.json",
-      JSON.stringify(accessToken, null, 2)
-    )
+      JSON.stringify(accessToken, null, 2),
+    ),
   );
 }).pipe(Effect.provide(MainLive));
 

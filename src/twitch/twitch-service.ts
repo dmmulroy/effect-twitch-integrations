@@ -7,7 +7,7 @@ import {
 import { TwitchConfig } from "./twitch-config";
 import { ApiClient } from "@twurple/api";
 import { EventSubWsListener } from "@twurple/eventsub-ws";
-import { Message, MessagePubSub } from "./message-pubsub";
+import { Message, MessagePubSub } from "../message-pubsub";
 
 export class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
   TwitchAuthProvider,
@@ -55,22 +55,26 @@ export type ITwitchApiClient = Readonly<{
   ) => Effect.Effect<A, TwitchError, never>;
 }>;
 
-const makeApiClient = Effect.gen(function* () {
-  const authProvider = yield* TwitchAuthProvider;
-  const client = new ApiClient({ authProvider });
-  const useApi = <A>(f: (client: ApiClient) => Promise<A>) =>
-    Effect.tryPromise({
-      try: () => f(client),
-      catch: (error) => new TwitchError({ cause: error }),
-    });
-  return { useApi, client } as const;
-});
+function make() {
+  return Effect.gen(function* () {
+    const authProvider = yield* TwitchAuthProvider;
+    const client = new ApiClient({ authProvider });
+
+    const useApi = <A>(f: (client: ApiClient) => Promise<A>) =>
+      Effect.tryPromise({
+        try: () => f(client),
+        catch: (error) => new TwitchError({ cause: error }),
+      });
+
+    return { useApi, client } as const;
+  });
+}
 
 export class TwitchApiClient extends Context.Tag("app/Twitch")<
   TwitchApiClient,
   ITwitchApiClient
 >() {
-  static Live = Layer.effect(this, makeApiClient).pipe(
+  static Live = Layer.effect(this, make()).pipe(
     Layer.provide(TwitchAuthProvider.RefreshingAuthProviderLive),
   );
 }

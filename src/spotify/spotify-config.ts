@@ -1,5 +1,5 @@
 import { Config, Context, Effect, Layer, Secret } from "effect";
-import AccessTokenJson from "./do_not_open_on_stream/access-token.json";
+import AccessTokenJson from "../do_not_open_on_stream/access-token.json";
 import type { AccessToken } from "@spotify/web-api-ts-sdk";
 
 // TODO Schema decode

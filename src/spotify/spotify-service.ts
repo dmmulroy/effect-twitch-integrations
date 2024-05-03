@@ -1,41 +1,51 @@
 import { SpotifyApi, type AccessToken } from "@spotify/web-api-ts-sdk";
 import { Context, Data, Effect, Encoding, Layer, Queue, Secret } from "effect";
-import { Message, MessagePubSub } from "./message-pubsub";
-import { SpotifyConfigService } from "./spotify-config-service";
+import { Message, MessagePubSub } from "../message-pubsub";
+import { SpotifyConfig } from "./spotify-config";
 
 export class SpotifyError extends Data.TaggedError("SpotifyError")<{
   cause: unknown;
 }> {}
 
-const make = Effect.gen(function* () {
-  const config = yield* SpotifyConfigService;
+export type ISpotifyApiClient = Readonly<{
+  client: SpotifyApi;
+  useApi: <A>(
+    fn: (client: SpotifyApi) => Promise<A>,
+  ) => Effect.Effect<A, SpotifyError, never>;
+}>;
 
-  const client = SpotifyApi.withAccessToken(
-    config.clientId,
-    config.accessToken
-  );
-  const use = <A>(f: (client: SpotifyApi) => Promise<A>) =>
-    Effect.tryPromise({
-      try: () => f(client),
-      catch: (cause) => new SpotifyError({ cause }),
-    });
+function make() {
+  return Effect.gen(function* () {
+    const config = yield* SpotifyConfig;
 
-  return { use, client } as const;
-});
+    const client = SpotifyApi.withAccessToken(
+      config.clientId,
+      config.accessToken,
+    );
+
+    const useApi = <A>(fn: (client: SpotifyApi) => Promise<A>) =>
+      Effect.tryPromise({
+        try: () => fn(client),
+        catch: (cause) => new SpotifyError({ cause }),
+      });
+
+    return { useApi, client } as const;
+  });
+}
 
 export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
   SpotifyApiClient,
-  Effect.Effect.Success<typeof make>
+  ISpotifyApiClient
 >() {
-  static Live = Layer.scoped(this, make).pipe(
-    Layer.provide(SpotifyConfigService.Live)
+  static Live = Layer.effect(this, make()).pipe(
+    Layer.provide(SpotifyConfig.Live),
   );
 }
 
 export const SpotifyService = Layer.scopedDiscard(
   Effect.gen(function* () {
     yield* Effect.logInfo("starting spotify service");
-    const api = yield* SpotifyApiClient;
+    const spotify = yield* SpotifyApiClient;
     const pubsub = yield* MessagePubSub;
 
     const dequeue = yield* pubsub.subscribeTo("CurrentlyPlayingRequest");
@@ -48,8 +58,8 @@ export const SpotifyService = Layer.scopedDiscard(
           yield* Queue.take(dequeue);
           yield* Effect.logInfo("received CurrentlyPlayingRequest listener");
 
-          const { item } = yield* api.use((_) =>
-            _.player.getCurrentlyPlayingTrack(undefined)
+          const { item } = yield* spotify.useApi((client) =>
+            client.player.getCurrentlyPlayingTrack(undefined),
           );
 
           yield* Effect.logInfo("resolved spotify api request");
@@ -61,17 +71,17 @@ export const SpotifyService = Layer.scopedDiscard(
 
           yield* Effect.logInfo("publishing currently playing");
           yield* pubsub.publish(Message.CurrentlyPlaying({ song: item }));
-        })
-      )
+        }),
+      ),
     );
-  })
+  }),
 ).pipe(Layer.provide(SpotifyApiClient.Live), Layer.provide(MessagePubSub.Live));
 
 export function requestAccessToken(code: string) {
   return Effect.gen(function* () {
-    const config = yield* SpotifyConfigService;
+    const config = yield* SpotifyConfig;
     const authorizationHeader = `Basic ${Encoding.encodeBase64(
-      `${config.clientId}:${Secret.value(config.clientSecret)}`
+      `${config.clientId}:${Secret.value(config.clientSecret)}`,
     )}`;
 
     // TODO: Refactor to platform HttpClient
@@ -91,7 +101,7 @@ export function requestAccessToken(code: string) {
         }).then((res) => res.json()),
       catch: (error) => {
         return new Error(
-          `An error occured while requesting Spotify Access Token: ${error}`
+          `An error occured while requesting Spotify Access Token: ${error}`,
         );
       },
     });
@@ -104,7 +114,7 @@ function encodeFormData(data: object) {
   return Object.keys(data)
     .map(
       // @ts-expect-error
-      (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
+      (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]),
     )
     .join("&");
 }
