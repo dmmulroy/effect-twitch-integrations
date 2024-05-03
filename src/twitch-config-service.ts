@@ -1,7 +1,4 @@
 import { Config, Context, Effect, Layer, Secret } from "effect";
-/* import accessTokenJson from "./access-token.json";
-
-const accessTokenString = JSON.stringify(accessTokenJson); */
 
 export type ITwitchConfig = Readonly<{
   accessToken: Secret.Secret;
@@ -10,6 +7,7 @@ export type ITwitchConfig = Readonly<{
   broadcasterId: string;
   broadcasterUsername: string;
   scopes: Array<string>;
+  songRequestRewardId: string;
 }>;
 
 export class TwitchConfig extends Context.Tag("twitch-config")<
@@ -44,6 +42,7 @@ export class TwitchConfig extends Context.Tag("twitch-config")<
           "whispers:edit",
           "whispers:read",
         ],
+        songRequestRewardId: "1abfa295-f609-48f3-aaed-fd7a4b441e9e",
       };
     }),
   );

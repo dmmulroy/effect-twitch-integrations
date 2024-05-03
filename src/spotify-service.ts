@@ -1,16 +1,8 @@
 import { SpotifyApi, type AccessToken } from "@spotify/web-api-ts-sdk";
-import { Context, Effect, Layer, Secret, Encoding } from "effect";
-import * as Http from "@effect/platform";
-import {
-  SpotifyConfigService,
-  type ISpotifyConfigService,
-} from "./spotify-config-service";
+import { Context, Effect, Layer, Secret, Encoding, pipe, Queue } from "effect";
+import { SpotifyConfigService } from "./spotify-config-service";
+import { Message, MessagePubSub } from "./message-pubsub";
 
-// Choose one of the following:
-/* 
-const result = await sdk.currentUser.profile();
-
-console.log(JSON.stringify(result, null, 2)); */
 export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
   SpotifyApiClient,
   SpotifyApi
@@ -24,6 +16,47 @@ export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
     }),
   ).pipe(Layer.provide(SpotifyConfigService.Live));
 }
+
+export const SpotifyService = Layer.effectDiscard(
+  Effect.scoped(
+    Effect.gen(function* () {
+      yield* Effect.logInfo("starting spotify service");
+      const api = yield* SpotifyApiClient;
+      const pubsub = yield* MessagePubSub;
+
+      const dequeue = yield* pubsub.subscribeTo("CurrentlyPlayingRequest");
+
+      yield* Effect.forkScoped(
+        Effect.forever(
+          Effect.gen(function* () {
+            yield* Effect.logInfo("starting CurrentlyPlayingRequest listener");
+            // todo: reccommend takeWhen
+            yield* Queue.take(dequeue);
+            yield* Effect.logInfo("received CurrentlyPlayingRequest listener");
+
+            const { item } = yield* Effect.tryPromise(() =>
+              api.player.getCurrentlyPlayingTrack(undefined),
+            );
+
+            yield* Effect.logInfo("resolved spotify api request");
+
+            if (!("album" in item)) {
+              yield* Effect.logWarning(`Invalid Spotify Track Item`);
+              return yield* Effect.void;
+            }
+
+            yield* Effect.logInfo("publishing currently playing");
+            yield* pubsub.publish(Message.CurrentlyPlaying({ song: item }));
+
+            return yield* Effect.void;
+          }),
+        ),
+      );
+
+      return yield* Effect.never;
+    }),
+  ).pipe(Effect.provide(Layer.mergeAll(SpotifyApiClient.Live))),
+);
 
 export function requestAccessToken(code: string) {
   return Effect.gen(function* () {
@@ -46,7 +79,6 @@ export function requestAccessToken(code: string) {
           }),
         }).then((res) => res.json()),
       catch: (error) => {
-        console.log("error: ", error);
         return new Error(
           `An error occured while requesting Spotify Access Token: ${error}`,
         );
