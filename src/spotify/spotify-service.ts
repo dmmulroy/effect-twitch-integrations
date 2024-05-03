@@ -13,29 +13,40 @@ function make() {
     const spotify = yield* SpotifyApiClient;
     const pubsub = yield* MessagePubSub;
 
-    const dequeue = yield* pubsub.subscribeTo("CurrentlyPlayingRequest");
+    const currentPlayingSubscriber = yield* pubsub.subscribeTo(
+      "CurrentlyPlayingRequest",
+    );
+
+    const songRequestSubscriber = yield* pubsub.subscribeTo("SongRequest");
 
     yield* Effect.forkScoped(
       Effect.forever(
         Effect.gen(function* () {
-          yield* Effect.logInfo("starting CurrentlyPlayingRequest listener");
           // todo: reccommend takeWhen
-          yield* Queue.take(dequeue);
-          yield* Effect.logInfo("received CurrentlyPlayingRequest listener");
+          yield* Queue.take(currentPlayingSubscriber);
 
           const { item } = yield* spotify.use((client) =>
             client.player.getCurrentlyPlayingTrack(undefined),
           );
-
-          yield* Effect.logInfo("resolved spotify api request");
 
           if (!("album" in item)) {
             yield* Effect.logWarning(`Invalid Spotify Track Item`);
             return;
           }
 
-          yield* Effect.logInfo("publishing currently playing");
           yield* pubsub.publish(Message.CurrentlyPlaying({ song: item }));
+        }),
+      ),
+    );
+
+    yield* Effect.forkScoped(
+      Effect.forever(
+        Effect.gen(function* () {
+          const message = yield* Queue.take(songRequestSubscriber);
+
+          yield* spotify.use((client) =>
+            client.player.addItemToPlaybackQueue(message.uri),
+          );
         }),
       ),
     );

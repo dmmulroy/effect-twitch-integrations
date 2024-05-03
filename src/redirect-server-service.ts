@@ -86,38 +86,39 @@ function makeRouter(
           return new Response("pong");
         }
         case `/${options.redirectServerPath}`: {
-          return yield* Effect.all({
-            code: Option.fromNullable(url.searchParams.get("code")).pipe(
-              Effect.mapError(Function.constant(new Error("No code received"))),
-            ),
-            // TODO: Validate that state matches the csrfToken
-            state: Option.fromNullable(url.searchParams.get("state")).pipe(
-              Effect.mapError(
-                Function.constant(new Error("No state received")),
-              ),
-            ),
-          })
-            .pipe(
-              Effect.match({
-                onSuccess: (params) => {
-                  return Effect.gen(function* () {
-                    yield* Deferred.succeed(mailbox, params.code);
+          const maybeCode = Option.fromNullable(url.searchParams.get("code"));
 
-                    return new Response("success", { status: 200 });
-                  });
-                },
-                onFailure: (error) => {
-                  return Effect.gen(function* () {
-                    yield* Deferred.fail(mailbox, error);
+          if (Option.isNone(maybeCode)) {
+            yield* Deferred.fail(mailbox, new Error(`No code received`));
 
-                    return new Response(`bad request: ${error.message}`, {
-                      status: 400,
-                    });
-                  });
-                },
-              }),
-            )
-            .pipe(Effect.runSync);
+            return new Response("Bad Request: No code received", {
+              status: 400,
+            });
+          }
+
+          const code = yield* maybeCode;
+
+          const maybeState = Option.fromNullable(url.searchParams.get("state"));
+
+          if (Option.isNone(maybeState)) {
+            yield* Deferred.fail(mailbox, new Error(`No state received`));
+
+            return new Response("Bad Request: No state received", {
+              status: 400,
+            });
+          }
+
+          const state = yield* maybeState;
+
+          if (state !== options.csrfToken) {
+            yield* Deferred.fail(mailbox, new Error("Invalid state"));
+
+            return new Response("Bad Request: Invalid state", { status: 400 });
+          }
+
+          yield* Deferred.succeed(mailbox, code);
+
+          return new Response("success", { status: 200 });
         }
         default: {
           yield* Deferred.fail(mailbox, new Error("not found"));

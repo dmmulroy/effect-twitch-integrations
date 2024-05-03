@@ -80,8 +80,6 @@ function make() {
           yield* Effect.logInfo(`dequque starting for ${messageType}`);
           const subscription = yield* PubSub.subscribe(pubsub);
 
-          // Fairly unsafe type hack/cast but it enables a really nice api
-          // for consumers/subscribers
           function predicate(
             message: Message,
           ): message is MessageTypeToMessage[T] {

@@ -48,15 +48,16 @@ function make() {
       },
     );
 
-    // eventsub.onChannelRedemptionAddForReward(
-    //   config.broadcasterId,
-    //   config.songRequestRewardId,
-    //   (event) => {
-    //     Effect.gen(function* () {
-    //       yield* pubsub.publish(Message.SongRequest({ uri: event.input }));
-    //     });
-    //   },
-    // );
+    eventsub.onChannelRedemptionAddForReward(
+      config.broadcasterId,
+      config.songRequestRewardId,
+      (event) => {
+        Effect.gen(function* () {
+          // TODO: URI Validation
+          yield* pubsub.publish(Message.SongRequest({ uri: event.input }));
+        });
+      },
+    );
 
     yield* Effect.forkScoped(
       Effect.forever(
