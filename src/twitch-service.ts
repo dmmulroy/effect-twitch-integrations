@@ -1,16 +1,13 @@
-import { Context, Layer, Effect, Secret } from "effect";
+import { Context, Layer, Effect, Secret, Queue, pipe } from "effect";
 import {
   RefreshingAuthProvider,
   StaticAuthProvider,
   type AuthProvider,
 } from "@twurple/auth";
-import { LogLevel } from "@twurple/chat";
-import { PubSubClient } from "@twurple/pubsub";
-import { TwitchConfig } from "./twitch-config-service";
+import { TwitchConfig, type ITwitchConfig } from "./twitch-config-service";
 import { ApiClient } from "@twurple/api";
-import { Message, MessageQueue } from "./message-queue";
-import { SpotifyApiClient } from "./spotify-service";
 import { EventSubWsListener } from "@twurple/eventsub-ws";
+import { Message, MessagePubSub } from "./message-pubsub";
 
 export class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
   TwitchAuthProvider,
@@ -52,36 +49,55 @@ export class TwitchApiClient extends Context.Tag("twitch-api-client")<
     Effect.map(TwitchAuthProvider, (authProvider) => {
       return new ApiClient({ authProvider });
     }),
-  ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
-}
-
-export class TwitchPubSubClient extends Context.Tag("twitch-pubsub-client")<
-  TwitchPubSubClient,
-  PubSubClient
->() {
-  static Live = Layer.effect(
-    this,
-    Effect.map(TwitchAuthProvider, (authProvider) => {
-      return new PubSubClient({
-        authProvider,
-        logger: { name: "chat", minLevel: LogLevel.WARNING },
-      });
-    }),
-  ).pipe(Layer.provide(TwitchAuthProvider.StaticAuthProviderLive));
+  ).pipe(Layer.provide(TwitchAuthProvider.RefreshingAuthProviderLive));
 }
 
 export class TwitchEventSubClient extends Context.Tag("twitch-eventsub-client")<
   TwitchEventSubClient,
   EventSubWsListener
 >() {
-  static Live = Layer.effect(
+  static Live = Layer.scoped(
     this,
     Effect.gen(function* () {
       const apiClient = yield* TwitchApiClient;
 
-      return new EventSubWsListener({
-        apiClient,
-      });
+      const eventsub = yield* Effect.acquireRelease(
+        Effect.succeed(new EventSubWsListener({ apiClient })),
+        (eventsub) => {
+          return Effect.gen(function* () {
+            yield* Effect.logInfo("event sub stopping");
+            eventsub.stop();
+
+            return Effect.void;
+          });
+        },
+      );
+      yield* Effect.logInfo("event sub starting");
+
+      return eventsub;
+    }),
+  ).pipe(Layer.provide(TwitchApiClient.Live));
+
+  static Test = Layer.scoped(
+    this,
+    Effect.gen(function* () {
+      const apiClient = yield* TwitchApiClient;
+
+      const eventsub = yield* Effect.acquireRelease(
+        Effect.succeed(
+          new EventSubWsListener({ apiClient, url: "ws://127.0.0.1:8080/ws" }),
+        ),
+        (eventsub) => {
+          eventsub.stop();
+
+          return Effect.void.pipe(() =>
+            Effect.logInfo("eventsub disconnected"),
+          );
+        },
+      );
+      yield* Effect.logInfo("connected");
+
+      return eventsub;
     }),
   ).pipe(Layer.provide(TwitchApiClient.Live));
 }
@@ -90,78 +106,73 @@ const TwitchClientsLive = Layer.mergeAll(
   TwitchConfig.Live,
   TwitchApiClient.Live,
   TwitchEventSubClient.Live,
-  TwitchPubSubClient.Live,
-  MessageQueue.Live,
 );
 
-const songRequestRewardId = "1abfa295-f609-48f3-aaed-fd7a4b441e9e";
+const TwitchClientsTest = Layer.mergeAll(
+  TwitchConfig.Live,
+  TwitchApiClient.Live,
+  TwitchEventSubClient.Test,
+);
 
-export type ITwitchService = Readonly<{
-  sendMessage(message: string): Effect.Effect<void, Error>;
-}>;
-
-export class TwitchService extends Context.Tag("twitch-service")<
-  TwitchService,
-  ITwitchService
->() {
-  static Live = Layer.scoped(
-    this,
+export const TwitchService = Layer.effectDiscard(
+  Effect.scoped(
     Effect.gen(function* () {
+      yield* Effect.logInfo("twitch service starting");
+      const api = yield* TwitchApiClient;
       const config = yield* TwitchConfig;
-      const apiClient = yield* TwitchApiClient;
-      const pubSubClient = yield* TwitchPubSubClient;
-      const eventSubClient = yield* TwitchEventSubClient;
-      const messageQueue = yield* MessageQueue;
+      const eventsub = yield* TwitchEventSubClient;
+      const pubsub = yield* MessagePubSub;
 
-      eventSubClient.onChannelChatMessage(
+      const dequeue = yield* pubsub.subscribeTo("CurrentlyPlaying");
+
+      eventsub.onChannelBan(config.broadcasterId, async () => {
+        await Effect.logInfo("Ban event").pipe(Effect.runPromise);
+      });
+
+      eventsub.onChannelChatMessage(
         config.broadcasterId,
         config.broadcasterId,
-        (event) => {
-          Effect.gen(function* () {
+        async (event) => {
+          await Effect.logInfo("chat message").pipe(Effect.runPromise);
+
+          await Effect.gen(function* () {
             if (event.messageText.startsWith("!")) {
               if (event.messageText === "!song") {
-                yield* messageQueue.enqueue(Message.CurrentlyPlaying());
+                yield* pubsub.publish(Message.CurrentlyPlayingRequest());
               }
             }
-          });
+          }).pipe(Effect.runPromise);
         },
       );
 
-      pubSubClient.onRedemption(config.broadcasterId, async (redemption) => {
-        Effect.gen(function* () {
-          if (redemption.rewardId === songRequestRewardId) {
-            // TODO: Add error logging
-            yield* Effect.tryPromise(() =>
-              apiClient.chat.sendChatMessage(
-                config.broadcasterId,
-                `@${redemption.userName} requested ${redemption.message}!`,
-              ),
-            );
+      // eventsub.onChannelRedemptionAddForReward(
+      //   config.broadcasterId,
+      //   config.songRequestRewardId,
+      //   (event) => {
+      //     Effect.gen(function* () {
+      //       yield* pubsub.publish(Message.SongRequest({ uri: event.input }));
+      //     });
+      //   },
+      // );
 
-            yield* messageQueue.enqueue(
-              Message.SongRequest({ uri: redemption.message }),
-            );
-          }
-        });
-      });
+      yield* Effect.forkScoped(
+        Effect.forever(
+          Effect.gen(function* () {
+            yield* Effect.logInfo("waiting for song");
+            const { song } = yield* Queue.take(dequeue);
+            yield* Effect.logInfo("received song");
 
-      return {
-        sendMessage(message) {
-          return Effect.tryPromise({
-            try: async () => {
-              return apiClient.chat.sendChatMessage(
+            yield* Effect.tryPromise(async () => {
+              return api.chat.sendChatMessage(
                 config.broadcasterId,
-                message,
+                `The currently playing song is ${song.name}`,
               );
-            },
-            catch: (error) => {
-              return new Error(
-                `An error occured while posting chat message to twitch: ${error}`,
-              );
-            },
-          });
-        },
-      };
+            });
+          }),
+        ),
+      );
+
+      return yield* Effect.never;
     }),
-  ); //.pipe(Layer.provide(TwitchClientsLive));
-}
+  ),
+).pipe(Layer.provide(Layer.mergeAll(TwitchClientsLive)));

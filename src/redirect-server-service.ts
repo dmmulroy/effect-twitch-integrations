@@ -9,9 +9,6 @@ import {
   Secret,
 } from "effect";
 import { SpotifyConfigService } from "./spotify-config-service";
-import { Browser } from "./browser";
-import { requestAccessToken } from "./spotify-service";
-import { BunRuntime } from "@effect/platform-bun";
 
 export type RedirectServerOptions = Readonly<{
   clientId: string;
@@ -51,8 +48,9 @@ export class RedirectServer extends Context.Tag("redirect-server")<
             }),
           ),
           (server) => {
-            console.log("stopping bun http server");
-            return Effect.succeed(server.stop());
+            return Effect.succeed(server.stop()).pipe(() =>
+              Effect.logInfo("stopped bun http server"),
+            );
           },
         );
 

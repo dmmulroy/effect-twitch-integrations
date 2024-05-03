@@ -27,12 +27,12 @@ const scopes = [
   "user-read-email",
   "user-read-private",
 ];
-// btw, design pill: your "program" can be "Layer.discardEffect(program)" and your main function can be "Layer.launch(fullLayer)" this automatically puts a never so you don't have to
+
 const MainLive = Layer.merge(SpotifyConfigService.Live, RedirectServer.Live);
 
 const getAccessToken = Effect.gen(function* () {
-  const redirectServer = yield* RedirectServer;
   const config = yield* SpotifyConfigService;
+  const redirectServer = yield* RedirectServer;
 
   const mailbox = yield* redirectServer.getMailbox();
 
