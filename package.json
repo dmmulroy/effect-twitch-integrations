@@ -13,7 +13,8 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@effect/platform-bun": "^0.33.10",
+    "@effect/platform": "^0.52.2",
+    "@effect/platform-bun": "^0.34.3",
     "@spotify/web-api-ts-sdk": "^1.2.0",
     "@twurple/api": "^7.1.0",
     "@twurple/auth": "^7.1.0",
@@ -23,5 +24,8 @@
     "@types/jsonwebtoken": "^9.0.6",
     "effect": "^3.0.3",
     "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "bun-types": "^1.1.6"
   }
 }

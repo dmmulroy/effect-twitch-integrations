@@ -1,67 +1,78 @@
 import { SpotifyApi, type AccessToken } from "@spotify/web-api-ts-sdk";
-import { Context, Effect, Layer, Secret, Encoding, pipe, Queue } from "effect";
-import { SpotifyConfigService } from "./spotify-config-service";
+import { Context, Data, Effect, Encoding, Layer, Queue, Secret } from "effect";
 import { Message, MessagePubSub } from "./message-pubsub";
+import { SpotifyConfigService } from "./spotify-config-service";
+
+export class SpotifyError extends Data.TaggedError("SpotifyError")<{
+  cause: unknown;
+}> {}
+
+const make = Effect.gen(function* () {
+  const config = yield* SpotifyConfigService;
+
+  const client = SpotifyApi.withAccessToken(
+    config.clientId,
+    config.accessToken
+  );
+  const use = <A>(f: (client: SpotifyApi) => Promise<A>) =>
+    Effect.tryPromise({
+      try: () => f(client),
+      catch: (cause) => new SpotifyError({ cause }),
+    });
+
+  return { use, client } as const;
+});
 
 export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
   SpotifyApiClient,
-  SpotifyApi
+  Effect.Effect.Success<typeof make>
 >() {
-  static Live = Layer.scoped(
-    this,
-    Effect.gen(function* () {
-      const config = yield* SpotifyConfigService;
-
-      return SpotifyApi.withAccessToken(config.clientId, config.accessToken);
-    }),
-  ).pipe(Layer.provide(SpotifyConfigService.Live));
+  static Live = Layer.scoped(this, make).pipe(
+    Layer.provide(SpotifyConfigService.Live)
+  );
 }
 
-export const SpotifyService = Layer.effectDiscard(
-  Effect.scoped(
-    Effect.gen(function* () {
-      yield* Effect.logInfo("starting spotify service");
-      const api = yield* SpotifyApiClient;
-      const pubsub = yield* MessagePubSub;
+export const SpotifyService = Layer.scopedDiscard(
+  Effect.gen(function* () {
+    yield* Effect.logInfo("starting spotify service");
+    const api = yield* SpotifyApiClient;
+    const pubsub = yield* MessagePubSub;
 
-      const dequeue = yield* pubsub.subscribeTo("CurrentlyPlayingRequest");
+    const dequeue = yield* pubsub.subscribeTo("CurrentlyPlayingRequest");
 
-      yield* Effect.forkScoped(
-        Effect.forever(
-          Effect.gen(function* () {
-            yield* Effect.logInfo("starting CurrentlyPlayingRequest listener");
-            // todo: reccommend takeWhen
-            yield* Queue.take(dequeue);
-            yield* Effect.logInfo("received CurrentlyPlayingRequest listener");
+    yield* Effect.forkScoped(
+      Effect.forever(
+        Effect.gen(function* () {
+          yield* Effect.logInfo("starting CurrentlyPlayingRequest listener");
+          // todo: reccommend takeWhen
+          yield* Queue.take(dequeue);
+          yield* Effect.logInfo("received CurrentlyPlayingRequest listener");
 
-            const { item } = yield* Effect.tryPromise(() =>
-              api.player.getCurrentlyPlayingTrack(undefined),
-            );
+          const { item } = yield* api.use((_) =>
+            _.player.getCurrentlyPlayingTrack(undefined)
+          );
 
-            yield* Effect.logInfo("resolved spotify api request");
+          yield* Effect.logInfo("resolved spotify api request");
 
-            if (!("album" in item)) {
-              yield* Effect.logWarning(`Invalid Spotify Track Item`);
-              return yield* Effect.void;
-            }
+          if (!("album" in item)) {
+            yield* Effect.logWarning(`Invalid Spotify Track Item`);
+            return;
+          }
 
-            yield* Effect.logInfo("publishing currently playing");
-            yield* pubsub.publish(Message.CurrentlyPlaying({ song: item }));
-
-            return yield* Effect.void;
-          }),
-        ),
-      );
-
-      return yield* Effect.never;
-    }),
-  ).pipe(Effect.provide(Layer.mergeAll(SpotifyApiClient.Live))),
-);
+          yield* Effect.logInfo("publishing currently playing");
+          yield* pubsub.publish(Message.CurrentlyPlaying({ song: item }));
+        })
+      )
+    );
+  })
+).pipe(Layer.provide(SpotifyApiClient.Live), Layer.provide(MessagePubSub.Live));
 
 export function requestAccessToken(code: string) {
   return Effect.gen(function* () {
     const config = yield* SpotifyConfigService;
-    const authorizationHeader = `Basic ${Encoding.encodeBase64(`${config.clientId}:${Secret.value(config.clientSecret)}`)}`;
+    const authorizationHeader = `Basic ${Encoding.encodeBase64(
+      `${config.clientId}:${Secret.value(config.clientSecret)}`
+    )}`;
 
     // TODO: Refactor to platform HttpClient
     const token: AccessToken = yield* Effect.tryPromise({
@@ -80,20 +91,20 @@ export function requestAccessToken(code: string) {
         }).then((res) => res.json()),
       catch: (error) => {
         return new Error(
-          `An error occured while requesting Spotify Access Token: ${error}`,
+          `An error occured while requesting Spotify Access Token: ${error}`
         );
       },
     });
 
     return token;
-  }).pipe(Effect.provide(SpotifyConfigService.Live));
+  });
 }
 
 function encodeFormData(data: object) {
   return Object.keys(data)
     .map(
       // @ts-expect-error
-      (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]),
+      (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
     )
     .join("&");
 }

@@ -1,8 +1,8 @@
 import { BunRuntime } from "@effect/platform-bun";
-import { Effect, Layer, Scope } from "effect";
-import { TwitchService } from "./twitch-service";
-import { SpotifyService } from "./spotify-service";
+import { Layer } from "effect";
 import { MessagePubSub } from "./message-pubsub";
+import { SpotifyService } from "./spotify-service";
+import { TwitchService } from "./twitch-service";
 
 const BunTime = {
   funTime: BunRuntime.runMain,
@@ -10,7 +10,7 @@ const BunTime = {
 
 const MainLive = Layer.provide(
   Layer.mergeAll(TwitchService, SpotifyService),
-  MessagePubSub.Live,
+  MessagePubSub.Live
 );
 
-export const run = () => BunTime.funTime(Layer.launch(MainLive));
+BunTime.funTime(Layer.launch(MainLive));
