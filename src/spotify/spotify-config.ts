@@ -13,30 +13,28 @@ export type ISpotifyConfig = Readonly<{
   redirectServerPath: string;
 }>;
 
-function make() {
-  return Effect.gen(function* (_) {
-    const clientId = yield* Config.string("SPOTIFY_CLIENT_ID");
-    const clientSecret = yield* Config.secret("SPOTIFY_CLIENT_SECRET");
-    const port = yield* Config.number("REDIRECT_SERVER_PORT").pipe(
-      Config.withDefault(3939),
-    );
-    const redirectServerPath = yield* Config.string(
-      "REDIRECT_SERVER_PATH",
-    ).pipe(Config.withDefault("redirect"));
+const make = Effect.gen(function* (_) {
+  const clientId = yield* Config.string("SPOTIFY_CLIENT_ID");
+  const clientSecret = yield* Config.secret("SPOTIFY_CLIENT_SECRET");
+  const port = yield* Config.number("REDIRECT_SERVER_PORT").pipe(
+    Config.withDefault(3939),
+  );
+  const redirectServerPath = yield* Config.string("REDIRECT_SERVER_PATH").pipe(
+    Config.withDefault("redirect"),
+  );
 
-    return {
-      accessToken,
-      clientId,
-      clientSecret,
-      port,
-      redirectServerPath,
-    } as const;
-  });
-}
+  return {
+    accessToken,
+    clientId,
+    clientSecret,
+    port,
+    redirectServerPath,
+  } as const;
+});
 
 export class SpotifyConfig extends Context.Tag("spotify-config")<
   SpotifyConfig,
   ISpotifyConfig
 >() {
-  static Live = Layer.effect(SpotifyConfig, make());
+  static Live = Layer.effect(SpotifyConfig, make);
 }

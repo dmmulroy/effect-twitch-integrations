@@ -35,7 +35,7 @@ export class RedirectServer extends Context.Tag("redirect-server")<
         const csrfToken = randomBytes(256).toString("hex");
 
         yield* Effect.acquireRelease(
-          Effect.succeed(
+          Effect.sync(() =>
             Bun.serve({
               port: config.port,
               fetch: makeRouter(mailbox, {

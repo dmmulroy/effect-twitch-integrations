@@ -10,32 +10,30 @@ export type ISpotifyApiClient = Readonly<{
   ) => Effect.Effect<A, SpotifyError, never>;
 }>;
 
+const make = Effect.gen(function* () {
+  const config = yield* SpotifyConfig;
+
+  const client = SpotifyApi.withAccessToken(
+    config.clientId,
+    config.accessToken,
+  );
+
+  const use = <A>(fn: (client: SpotifyApi) => Promise<A>) =>
+    Effect.tryPromise({
+      try: () => fn(client),
+      catch: (cause) => new SpotifyError({ cause }),
+    });
+
+  return { use, client } as const;
+});
+
 export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
   SpotifyApiClient,
   ISpotifyApiClient
 >() {
-  static Live = Layer.effect(this, make()).pipe(
+  static Live = Layer.effect(this, make).pipe(
     Layer.provide(SpotifyConfig.Live),
   );
-}
-
-function make() {
-  return Effect.gen(function* () {
-    const config = yield* SpotifyConfig;
-
-    const client = SpotifyApi.withAccessToken(
-      config.clientId,
-      config.accessToken,
-    );
-
-    const use = <A>(fn: (client: SpotifyApi) => Promise<A>) =>
-      Effect.tryPromise({
-        try: () => fn(client),
-        catch: (cause) => new SpotifyError({ cause }),
-      });
-
-    return { use, client } as const;
-  });
 }
 
 export function requestAccessToken(code: string) {
