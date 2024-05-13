@@ -1,4 +1,4 @@
-import { Effect, Layer, Queue } from "effect";
+import { Console, Effect, Layer, Queue } from "effect";
 import { Message, MessagePubSub } from "../message-pubsub";
 import { SpotifyApiClient } from "./spotify-api";
 
@@ -16,18 +16,25 @@ const make = Effect.gen(function* () {
   yield* Effect.forkScoped(
     Effect.forever(
       Effect.gen(function* () {
+        console.log("waiting for CurrentlyPlayingRequest");
         yield* Queue.take(currentPlayingSubscriber);
 
-        const { item } = yield* spotify.use((client) =>
-          client.player.getCurrentlyPlayingTrack(),
-        );
+        const { item } = yield* spotify
+          .use((client) => client.player.getCurrentlyPlayingTrack())
+          // TODO: Figure out how we want to handle this
+          .pipe(Effect.tapError(Console.error));
 
         if (!("album" in item)) {
           yield* Effect.logWarning(`Invalid Spotify Track Item`);
           return;
         }
 
-        yield* pubsub.publish(Message.CurrentlyPlaying({ song: item }));
+        yield* pubsub.publish(
+          Message.CurrentlyPlaying({
+            song: item.name,
+            artists: item.artists.map((artist) => artist.name),
+          }),
+        );
       }),
     ),
   );

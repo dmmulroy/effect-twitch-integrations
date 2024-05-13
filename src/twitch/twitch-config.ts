@@ -33,8 +33,7 @@ export const makeTwitchConfig = Effect.gen(function* () {
       "user:bot",
       "user:edit",
       "user:write:chat",
-      "whispers:edit",
-      "whispers:read",
+      "user:read:chat",
     ],
     songRequestRewardId: "1abfa295-f609-48f3-aaed-fd7a4b441e9e",
   };

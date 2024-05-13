@@ -28,6 +28,6 @@ export class TwitchApiClient extends Context.Tag("app/Twitch")<
   ITwitchApiClient
 >() {
   static Live = Layer.effect(this, make).pipe(
-    Layer.provide(TwitchAuthProvider.RefreshingAuthProviderLive),
+    Layer.provide(TwitchAuthProvider.StaticAuthProviderLive),
   );
 }

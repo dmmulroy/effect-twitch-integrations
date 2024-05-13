@@ -3,7 +3,7 @@ import { Context, Data, Effect, Layer, PubSub, Queue, Scope } from "effect";
 
 export type Message = Data.TaggedEnum<{
   CurrentlyPlayingRequest: {};
-  CurrentlyPlaying: { song: TrackItem };
+  CurrentlyPlaying: { song: string; artists: ReadonlyArray<string> };
   SongRequest: { uri: string };
 }>;
 
@@ -30,7 +30,7 @@ type MessageTypeToMessage = {
 
 export type IMessagePubSub = Readonly<{
   publish: (message: Message) => Effect.Effect<boolean>;
-  subscribe: Effect.Effect<Queue.Dequeue<Message>, never, Scope.Scope>;
+  subscribe: () => Effect.Effect<Queue.Dequeue<Message>, never, Scope.Scope>;
   subscribeTo: <T extends MessageType>(
     messageType: T,
   ) => Effect.Effect<
@@ -54,8 +54,9 @@ const make = Effect.gen(function* () {
   yield* Effect.logInfo("MessagePubSub started");
 
   return MessagePubSub.of({
-    publish: pubsub.publish,
-    subscribe: pubsub.subscribe,
+    publish: (message) => PubSub.publish(pubsub, message),
+    subscribe: () => PubSub.subscribe(pubsub),
+
     subscribeTo: <T extends MessageType>(messageType: T) =>
       Effect.gen(function* () {
         yield* Effect.logInfo(
@@ -68,6 +69,7 @@ const make = Effect.gen(function* () {
         );
 
         yield* Effect.logInfo(`dequque starting for ${messageType}`);
+
         const subscription = yield* PubSub.subscribe(pubsub);
 
         function predicate(

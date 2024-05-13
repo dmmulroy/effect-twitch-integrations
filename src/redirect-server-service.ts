@@ -32,7 +32,7 @@ export class RedirectServer extends Context.Tag("redirect-server")<
     Effect.flatMap(SpotifyConfig, (config) => {
       return Effect.gen(function* () {
         const mailbox = yield* Deferred.make<string, Error>();
-        const csrfToken = randomBytes(256).toString("hex");
+        const csrfToken = "foo"; //randomBytes(256).toString("hex");
 
         yield* Effect.acquireRelease(
           Effect.sync(() =>

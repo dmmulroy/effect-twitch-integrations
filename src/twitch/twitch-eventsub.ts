@@ -20,7 +20,13 @@ function make() {
     const api = yield* TwitchApiClient;
 
     const eventsub = yield* Effect.acquireRelease(
-      Effect.sync(() => new EventSubWsListener({ apiClient: api.client })),
+      Effect.sync(() => {
+        const eventsub = new EventSubWsListener({ apiClient: api.client });
+
+        eventsub.start();
+
+        return eventsub;
+      }),
       (eventsub) =>
         Effect.gen(function* () {
           yield* Effect.logInfo("event sub stopping");
@@ -38,13 +44,16 @@ function makeTest() {
     const api = yield* TwitchApiClient;
 
     const eventsub = yield* Effect.acquireRelease(
-      Effect.sync(
-        () =>
-          new EventSubWsListener({
-            apiClient: api.client,
-            url: "ws://127.0.0.1:8080/ws",
-          }),
-      ),
+      Effect.sync(() => {
+        const eventsub = new EventSubWsListener({
+          apiClient: api.client,
+          url: "ws://127.0.0.1:8080/ws",
+        });
+
+        eventsub.start();
+
+        return eventsub;
+      }),
       (eventsub) => {
         eventsub.stop();
 

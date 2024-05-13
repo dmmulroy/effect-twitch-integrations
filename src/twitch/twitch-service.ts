@@ -1,6 +1,11 @@
-import { Layer, Effect, Queue } from "effect";
+import { Layer, Effect, Queue, Function, Stream, Take, Chunk } from "effect";
 import { TwitchConfig } from "./twitch-config";
-import { Message, MessagePubSub } from "../message-pubsub";
+import {
+  Message,
+  MessagePubSub,
+  type CurrentlyPlayingRequestMessage,
+  type SongRequestMessage,
+} from "../message-pubsub";
 import { TwitchApiClient } from "./twitch-api";
 import { TwitchEventSubClient } from "./twitch-eventsub";
 
@@ -25,33 +30,47 @@ const make = Effect.gen(function* (_) {
 
   const dequeue = yield* pubsub.subscribeTo("CurrentlyPlaying");
 
-  eventsub.onChannelBan(config.broadcasterId, async () => {
-    await Effect.logInfo("Ban event").pipe(Effect.runPromise);
-  });
+  const chatMessageStream = Stream.async<CurrentlyPlayingRequestMessage>(
+    (emit) => {
+      eventsub.onChannelChatMessage(
+        config.broadcasterId,
+        config.broadcasterId,
+        async (event) => {
+          await Effect.logInfo("chat message").pipe(Effect.runPromise);
 
-  eventsub.onChannelChatMessage(
-    config.broadcasterId,
-    config.broadcasterId,
-    async (event) => {
-      await Effect.logInfo("chat message").pipe(Effect.runPromise);
-
-      if (event.messageText === "!song") {
-        await Effect.runPromise(
-          pubsub.publish(Message.CurrentlyPlayingRequest()),
-        );
-      }
+          if (event.messageText === "!song") {
+            console.log("received !song");
+            await emit.single(Message.CurrentlyPlayingRequest());
+          }
+        },
+      );
     },
   );
 
-  eventsub.onChannelRedemptionAddForReward(
-    config.broadcasterId,
-    config.songRequestRewardId,
-    (event) => {
-      Effect.gen(function* () {
-        // TODO: URI Validation
-        yield* pubsub.publish(Message.SongRequest({ uri: event.input }));
-      });
-    },
+  const songRequestMessageStream = Stream.async<SongRequestMessage>((emit) => {
+    eventsub.onChannelRedemptionAddForReward(
+      config.broadcasterId,
+      config.songRequestRewardId,
+      (event) => emit.single(Message.SongRequest({ uri: event.input })),
+    );
+  });
+
+  const mergedStream = Stream.merge(
+    chatMessageStream,
+    songRequestMessageStream,
+  );
+
+  const messagePull = yield* Stream.toPull(mergedStream);
+
+  yield* Effect.forkScoped(
+    Effect.forever(
+      messagePull.pipe(
+        Effect.tap(Effect.log),
+        Effect.flatMap(Chunk.head),
+        Effect.flatMap(pubsub.publish),
+        Effect.catchAll(Function.constant(Effect.void)),
+      ),
+    ),
   );
 
   yield* Effect.forkScoped(
@@ -59,15 +78,12 @@ const make = Effect.gen(function* (_) {
       Effect.gen(function* () {
         yield* Effect.logInfo("waiting for song");
 
-        const { song } = yield* Queue.take(dequeue);
+        const { song, artists } = yield* Queue.take(dequeue);
 
-        yield* Effect.logInfo("received song");
+        const message = `The currently playing song is ${song} by ${artists.join(", ")}`;
 
         yield* api.use((client) =>
-          client.chat.sendChatMessage(
-            config.broadcasterId,
-            `The currently playing song is ${song.name}`,
-          ),
+          client.chat.sendChatMessage(config.broadcasterId, message),
         );
       }),
     ),
