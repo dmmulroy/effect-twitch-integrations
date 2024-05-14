@@ -22,7 +22,7 @@ const make = Effect.gen(function* (_) {
   );
 
   return eventsub;
-});
+}).pipe(Effect.annotateLogs({ fiber_name: "twitch-eventsub-client" }));
 
 const makeTest = Effect.gen(function* (_) {
   yield* Effect.logInfo("Starting TwitchEventSubClient");
@@ -47,7 +47,7 @@ const makeTest = Effect.gen(function* (_) {
   );
 
   return eventsub;
-});
+}).pipe(Effect.annotateLogs({ fiber_name: "twitch-eventsub-client" }));
 
 export class TwitchEventSubClient extends Context.Tag("twitch-eventsub-client")<
   TwitchEventSubClient,

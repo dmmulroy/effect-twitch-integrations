@@ -105,7 +105,7 @@ const make = Effect.gen(function* () {
         return queue;
       }),
   });
-});
+}).pipe(Effect.annotateLogs({ fiber_name: "message-pubsub" }));
 
 export class MessagePubSub extends Context.Tag("message-pubsub")<
   MessagePubSub,

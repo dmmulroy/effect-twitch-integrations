@@ -81,6 +81,8 @@ const make = Effect.gen(function* (_) {
         yield* pubsub.publish(message);
       }),
     ),
+  ).pipe(
+    Effect.annotateLogs({ fiber_name: "twitch-eventsub-merged-stream-fiber" }),
   );
 
   const currentlyPlayingSubscriber =
@@ -116,12 +118,20 @@ const make = Effect.gen(function* (_) {
         );
       }),
     ),
+  ).pipe(
+    Effect.annotateLogs({
+      fiber_name: "twitch-service-currently-playing-fiber",
+    }),
   );
 
   yield* Effect.acquireRelease(Effect.logInfo(`TwitchService started`), () =>
     Effect.logInfo(`TwitchService stopped`),
   );
-});
+}).pipe(
+  Effect.annotateLogs({
+    fiber_name: "twitch-service",
+  }),
+);
 
 export const TwitchService = Layer.scopedDiscard(make).pipe(
   Layer.provide(TwitchClientsLive),

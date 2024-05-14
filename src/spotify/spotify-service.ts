@@ -71,6 +71,8 @@ const make = Effect.gen(function* () {
         );
       }),
     ),
+  ).pipe(
+    Effect.annotateLogs({ fiber_name: "spotify-currently-playing-fiber" }),
   );
 
   yield* Effect.forkScoped(
@@ -102,7 +104,7 @@ const make = Effect.gen(function* () {
   yield* Effect.acquireRelease(Effect.logInfo(`SpotifyService started`), () =>
     Effect.logInfo(`SpotifyService stopped`),
   );
-}).pipe(Effect.annotateLogs({ service: "spotify-service" }));
+}).pipe(Effect.annotateLogs({ fiber_name: "spotify-service" }));
 
 export const SpotifyService = Layer.scopedDiscard(make).pipe(
   Layer.provide(SpotifyApiClient.Live),
