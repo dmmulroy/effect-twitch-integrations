@@ -3,6 +3,11 @@ import { Layer } from "effect";
 import { MessagePubSub } from "./message-pubsub";
 import { SpotifyService } from "./spotify/spotify-service";
 import { TwitchService } from "./twitch/twitch-service";
+import { NodeSdk } from "@effect/opentelemetry";
+import {
+  BatchSpanProcessor,
+  ConsoleSpanExporter,
+} from "@opentelemetry/sdk-trace-base";
 
 const BunTime = {
   funTime: BunRuntime.runMain,

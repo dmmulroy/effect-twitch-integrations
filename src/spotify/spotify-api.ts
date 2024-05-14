@@ -25,7 +25,7 @@ const make = Effect.gen(function* () {
     });
 
   return { use, client } as const;
-});
+}).pipe(Effect.annotateLogs({ service: "spotify-api-client" }));
 
 export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
   SpotifyApiClient,

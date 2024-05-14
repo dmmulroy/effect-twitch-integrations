@@ -1,9 +1,11 @@
-import { Console, Effect, Layer, Queue } from "effect";
+import { Console, Effect, Layer, Queue, Option, PubSub, Logger } from "effect";
 import { Message, MessagePubSub } from "../message-pubsub";
 import { SpotifyApiClient } from "./spotify-api";
+import { SpotifyError } from "./spotify-error";
 
 const make = Effect.gen(function* () {
-  yield* Effect.logInfo("starting spotify service");
+  yield* Effect.logInfo(`Starting SpotifyService`);
+
   const spotify = yield* SpotifyApiClient;
   const pubsub = yield* MessagePubSub;
 
@@ -16,16 +18,47 @@ const make = Effect.gen(function* () {
   yield* Effect.forkScoped(
     Effect.forever(
       Effect.gen(function* () {
-        console.log("waiting for CurrentlyPlayingRequest");
-        yield* Queue.take(currentPlayingSubscriber);
+        const message = yield* Queue.take(currentPlayingSubscriber);
+
+        yield* Effect.logInfo(
+          `Received a CurrentlyPlayingRequestMessage from @${message.requesterDisplayName}`,
+        );
 
         const { item } = yield* spotify
           .use((client) => client.player.getCurrentlyPlayingTrack())
-          // TODO: Figure out how we want to handle this
-          .pipe(Effect.tapError(Console.error));
+          .pipe(
+            Effect.tapError((error) =>
+              Effect.gen(function* () {
+                yield* Effect.logError(
+                  `An error occured while getting the currently playing track: ${String(error.cause)}`,
+                );
+
+                yield* pubsub.publish(
+                  Message.SongRequestError({
+                    requesterDisplayName: message.requesterDisplayName,
+                    cause: error,
+                  }),
+                );
+              }),
+            ),
+          );
+
+        yield* Effect.logInfo(
+          `Successfully fetched currently playing track: ${item.uri}`,
+        );
 
         if (!("album" in item)) {
-          yield* Effect.logWarning(`Invalid Spotify Track Item`);
+          yield* Effect.logWarning(
+            `The currently playing item is not a song: ${item.uri}`,
+          );
+
+          yield* pubsub.publish(
+            Message.InvalidSongRequest({
+              requesterDisplayName: message.requesterDisplayName,
+              reason: "The currently playing item is not a song",
+            }),
+          );
+
           return;
         }
 
@@ -33,6 +66,7 @@ const make = Effect.gen(function* () {
           Message.CurrentlyPlaying({
             song: item.name,
             artists: item.artists.map((artist) => artist.name),
+            requesterDisplayName: message.requesterDisplayName,
           }),
         );
       }),
@@ -44,15 +78,45 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         const message = yield* Queue.take(songRequestSubscriber);
 
-        yield* spotify.use((client) =>
-          client.player.addItemToPlaybackQueue(message.uri),
+        const songId = yield* getSongIdFromUrl(message.url).pipe(
+          Effect.tapError((error) =>
+            Effect.logError(`getSongIdFromUrl: ${error.cause}`),
+          ),
         );
+
+        yield* spotify
+          .use((client) =>
+            client.player.addItemToPlaybackQueue(`spotify:track:${songId}`),
+          )
+          .pipe(
+            Effect.tapError((error) =>
+              Effect.logError(
+                `client.player.addItemToPlaybackQueue: ${error.cause}`,
+              ),
+            ),
+          );
       }),
     ),
   );
-});
+
+  yield* Effect.acquireRelease(Effect.logInfo(`SpotifyService started`), () =>
+    Effect.logInfo(`SpotifyService stopped`),
+  );
+}).pipe(Effect.annotateLogs({ service: "spotify-service" }));
 
 export const SpotifyService = Layer.scopedDiscard(make).pipe(
   Layer.provide(SpotifyApiClient.Live),
-  Layer.provide(MessagePubSub.Live),
 );
+
+const songIdRegex = new RegExp(/\/track\/([a-zA-z0-9]*)/);
+
+export function getSongIdFromUrl(
+  url: string,
+): Effect.Effect<string, SpotifyError> {
+  return Option.fromNullable(songIdRegex.exec(url)).pipe(
+    Option.map(([, songId]) => songId),
+    Effect.mapError(
+      () => new SpotifyError({ cause: `Invalid song url: ${url}` }),
+    ),
+  );
+}

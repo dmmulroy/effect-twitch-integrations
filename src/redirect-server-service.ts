@@ -48,9 +48,7 @@ export class RedirectServer extends Context.Tag("redirect-server")<
             }),
           ),
           (server) => {
-            return Effect.succeed(server.stop()).pipe(() =>
-              Effect.logInfo("stopped bun http server"),
-            );
+            return Effect.sync(() => server.stop());
           },
         );
 

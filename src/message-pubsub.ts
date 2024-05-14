@@ -1,10 +1,15 @@
-import type { TrackItem } from "@spotify/web-api-ts-sdk";
 import { Context, Data, Effect, Layer, PubSub, Queue, Scope } from "effect";
 
 export type Message = Data.TaggedEnum<{
-  CurrentlyPlayingRequest: {};
-  CurrentlyPlaying: { song: string; artists: ReadonlyArray<string> };
-  SongRequest: { uri: string };
+  CurrentlyPlayingRequest: { requesterDisplayName: string };
+  CurrentlyPlaying: {
+    song: string;
+    artists: ReadonlyArray<string>;
+    requesterDisplayName: string;
+  };
+  InvalidSongRequest: { requesterDisplayName: string; reason: string };
+  SongRequest: { requesterDisplayName: string; url: string };
+  SongRequestError: { requesterDisplayName: string; cause: unknown };
 }>;
 
 export type CurrentlyPlayingRequestMessage = Extract<
@@ -18,6 +23,17 @@ export type CurrentlyPlayingMessage = Extract<
 >;
 
 export type SongRequestMessage = Extract<Message, { _tag: "SongRequest" }>;
+
+export type SongRequestErrorMessage = Extract<
+  Message,
+  { _tag: "SongRequestError" }
+>;
+
+export type InvalidSongRequestMessage = Extract<
+  Message,
+  { _tag: "InvalidSongRequestMessage" }
+>;
+
 export type MessageType = Message["_tag"];
 
 export const Message = Data.taggedEnum<Message>();
@@ -25,7 +41,9 @@ export const Message = Data.taggedEnum<Message>();
 type MessageTypeToMessage = {
   CurrentlyPlayingRequest: CurrentlyPlayingRequestMessage;
   CurrentlyPlaying: CurrentlyPlayingMessage;
+  InvalidSongRequest: InvalidSongRequestMessage;
   SongRequest: SongRequestMessage;
+  SongRequestError: SongRequestErrorMessage;
 };
 
 export type IMessagePubSub = Readonly<{
@@ -41,17 +59,17 @@ export type IMessagePubSub = Readonly<{
 }>;
 
 const make = Effect.gen(function* () {
-  const pubsub: PubSub.PubSub<Message> = yield* Effect.acquireRelease(
-    PubSub.unbounded<Message>(),
-    (queue) =>
-      Effect.gen(function* () {
-        return PubSub.shutdown(queue).pipe(
-          Effect.tap(Effect.log("MessagePubSub stopped")),
-        );
-      }),
-  );
+  yield* Effect.logInfo("Starting MessagePubSub");
 
-  yield* Effect.logInfo("MessagePubSub started");
+  const pubsub: PubSub.PubSub<Message> = yield* Effect.acquireRelease(
+    PubSub.unbounded<Message>().pipe(
+      Effect.tap(Effect.logInfo("MessagePubSub started")),
+    ),
+    (queue) =>
+      PubSub.shutdown(queue).pipe(
+        Effect.tap(Effect.logInfo("MessagePubSub stopped")),
+      ),
+  );
 
   return MessagePubSub.of({
     publish: (message) => PubSub.publish(pubsub, message),
@@ -59,16 +77,10 @@ const make = Effect.gen(function* () {
 
     subscribeTo: <T extends MessageType>(messageType: T) =>
       Effect.gen(function* () {
-        yield* Effect.logInfo(
-          `MessagePubSub recevied subscription for ${messageType}`,
-        );
         const queue = yield* Effect.acquireRelease(
           Queue.unbounded<MessageTypeToMessage[T]>(),
-          (queue) =>
-            Queue.shutdown(queue).pipe(() => Effect.logInfo(`dequque stopped`)),
+          (queue) => Queue.shutdown(queue),
         );
-
-        yield* Effect.logInfo(`dequque starting for ${messageType}`);
 
         const subscription = yield* PubSub.subscribe(pubsub);
 
@@ -83,17 +95,11 @@ const make = Effect.gen(function* () {
             Effect.gen(function* () {
               const message = yield* subscription.take;
 
-              yield* Effect.logInfo(`consumer received ${message}`);
-
               if (predicate(message)) {
                 yield* Queue.offer(queue, message);
               }
             }),
           ),
-        );
-
-        yield* Effect.addFinalizer(() =>
-          Effect.logInfo(`consumer for ${messageType} ending`),
         );
 
         return queue;

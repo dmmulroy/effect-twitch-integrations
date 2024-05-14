@@ -13,8 +13,13 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@effect/opentelemetry": "^0.34.4",
     "@effect/platform": "^0.53.4",
     "@effect/platform-bun": "^0.34.3",
+    "@opentelemetry/sdk-metrics": "^1.24.1",
+    "@opentelemetry/sdk-trace-base": "^1.24.1",
+    "@opentelemetry/sdk-trace-node": "^1.24.1",
+    "@opentelemetry/sdk-trace-web": "^1.24.1",
     "@spotify/web-api-ts-sdk": "^1.2.0",
     "@twurple/api": "^7.1.0",
     "@twurple/auth": "^7.1.0",

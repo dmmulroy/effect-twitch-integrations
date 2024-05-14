@@ -1,4 +1,4 @@
-import { Layer, Effect, Queue, Function, Stream, Take, Chunk } from "effect";
+import { Layer, Effect, Queue, Function, Stream, Chunk } from "effect";
 import { TwitchConfig } from "./twitch-config";
 import {
   Message,
@@ -22,13 +22,12 @@ export const TwitchClientsTest = Layer.mergeAll(
 );
 
 const make = Effect.gen(function* (_) {
-  yield* Effect.logInfo("twitch service starting");
+  yield* Effect.logInfo(`Starting TwitchService`);
+
   const api = yield* TwitchApiClient;
   const config = yield* TwitchConfig;
   const eventsub = yield* TwitchEventSubClient;
   const pubsub = yield* MessagePubSub;
-
-  const dequeue = yield* pubsub.subscribeTo("CurrentlyPlaying");
 
   const chatMessageStream = Stream.async<CurrentlyPlayingRequestMessage>(
     (emit) => {
@@ -36,11 +35,12 @@ const make = Effect.gen(function* (_) {
         config.broadcasterId,
         config.broadcasterId,
         async (event) => {
-          await Effect.logInfo("chat message").pipe(Effect.runPromise);
-
           if (event.messageText === "!song") {
-            console.log("received !song");
-            await emit.single(Message.CurrentlyPlayingRequest());
+            await emit.single(
+              Message.CurrentlyPlayingRequest({
+                requesterDisplayName: event.chatterDisplayName,
+              }),
+            );
           }
         },
       );
@@ -51,7 +51,13 @@ const make = Effect.gen(function* (_) {
     eventsub.onChannelRedemptionAddForReward(
       config.broadcasterId,
       config.songRequestRewardId,
-      (event) => emit.single(Message.SongRequest({ uri: event.input })),
+      (event) =>
+        emit.single(
+          Message.SongRequest({
+            requesterDisplayName: event.userDisplayName,
+            url: event.input,
+          }),
+        ),
     );
   });
 
@@ -64,32 +70,59 @@ const make = Effect.gen(function* (_) {
 
   yield* Effect.forkScoped(
     Effect.forever(
-      messagePull.pipe(
-        Effect.tap(Effect.log),
-        Effect.flatMap(Chunk.head),
-        Effect.flatMap(pubsub.publish),
-        Effect.catchAll(Function.constant(Effect.void)),
-      ),
+      Effect.gen(function* () {
+        const chunk = yield* messagePull;
+        const message = yield* Chunk.head(chunk);
+
+        Effect.logInfo(
+          `Received ${message._tag} message from twitch eventsub from @${message.requesterDisplayName}`,
+        );
+
+        yield* pubsub.publish(message);
+      }),
     ),
   );
 
+  const currentlyPlayingSubscriber =
+    yield* pubsub.subscribeTo("CurrentlyPlaying");
+
   yield* Effect.forkScoped(
     Effect.forever(
-      Effect.gen(function* () {
-        yield* Effect.logInfo("waiting for song");
+      Effect.gen(function* (_) {
+        const { song, artists, requesterDisplayName } = yield* Queue.take(
+          currentlyPlayingSubscriber,
+        );
 
-        const { song, artists } = yield* Queue.take(dequeue);
+        const message = `Current song: ${song} by ${artists.join(", ")}`;
 
-        const message = `The currently playing song is ${song} by ${artists.join(", ")}`;
+        yield* Effect.logInfo(
+          `Received a CurrentlyPlayingMessage for @${requesterDisplayName}. ${message}`,
+        );
 
-        yield* api.use((client) =>
-          client.chat.sendChatMessage(config.broadcasterId, message),
+        yield* api
+          .use((client) =>
+            client.chat.sendChatMessage(config.broadcasterId, message),
+          )
+          .pipe(
+            Effect.tapError((error) =>
+              Effect.logError(
+                `An error occured while sending chat message: ${String(error.cause)}`,
+              ),
+            ),
+          );
+
+        yield* Effect.logInfo(
+          `Successfully sent CurrentlyPlayingMessage to twitch for @${requesterDisplayName}`,
         );
       }),
     ),
   );
+
+  yield* Effect.acquireRelease(Effect.logInfo(`TwitchService started`), () =>
+    Effect.logInfo(`TwitchService stopped`),
+  );
 });
 
 export const TwitchService = Layer.scopedDiscard(make).pipe(
-  Layer.provide(Layer.mergeAll(TwitchClientsLive)),
+  Layer.provide(TwitchClientsLive),
 );
