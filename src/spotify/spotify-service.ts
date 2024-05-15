@@ -1,5 +1,5 @@
 import { Console, Effect, Layer, Queue, Option, PubSub, Logger } from "effect";
-import { Message, MessagePubSub } from "../message-pubsub";
+import { Message, MessagePubSub } from "../pubsub/message-pubsub";
 import { SpotifyApiClient } from "./spotify-api";
 import { SpotifyError } from "./spotify-error";
 
@@ -30,7 +30,8 @@ const make = Effect.gen(function* () {
             Effect.tapError((error) =>
               Effect.gen(function* () {
                 yield* Effect.logError(
-                  `An error occured while getting the currently playing track: ${String(error.cause)}`,
+                  `An error occured while getting the currently playing track`,
+                  error,
                 );
 
                 yield* pubsub.publish(
@@ -81,9 +82,7 @@ const make = Effect.gen(function* () {
         const message = yield* Queue.take(songRequestSubscriber);
 
         const songId = yield* getSongIdFromUrl(message.url).pipe(
-          Effect.tapError((error) =>
-            Effect.logError(`getSongIdFromUrl: ${error.cause}`),
-          ),
+          Effect.tapError(Effect.logError),
         );
 
         yield* spotify
@@ -91,11 +90,10 @@ const make = Effect.gen(function* () {
             client.player.addItemToPlaybackQueue(`spotify:track:${songId}`),
           )
           .pipe(
-            Effect.tapError((error) =>
-              Effect.logError(
-                `client.player.addItemToPlaybackQueue: ${error.cause}`,
-              ),
-            ),
+            Effect.tapError(Effect.logError),
+            Effect.annotateLogs({
+              fiber_name: "spotify-song-request-fiber",
+            }),
           );
       }),
     ),

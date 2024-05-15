@@ -1,4 +1,13 @@
-import { Context, Data, Effect, Layer, PubSub, Queue, Scope } from "effect";
+import {
+  Context,
+  Data,
+  Effect,
+  Layer,
+  PubSub,
+  Queue,
+  Scope,
+  Types,
+} from "effect";
 
 export type Message = Data.TaggedEnum<{
   CurrentlyPlayingRequest: { requesterDisplayName: string };
@@ -27,6 +36,12 @@ export type SongRequestMessage = Extract<Message, { _tag: "SongRequest" }>;
 export type SongRequestErrorMessage = Extract<
   Message,
   { _tag: "SongRequestError" }
+>;
+
+// TODO: Refactor to use Types.ExtractTag
+export type InvalidSongRequestMessageVs = Types.ExtractTag<
+  Message,
+  "InvalidSongRequest"
 >;
 
 export type InvalidSongRequestMessage = Extract<

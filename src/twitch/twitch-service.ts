@@ -1,24 +1,20 @@
-import { Layer, Effect, Queue, Function, Stream, Chunk } from "effect";
+import { Layer, Effect, Queue, Stream, Chunk } from "effect";
 import { TwitchConfig } from "./twitch-config";
-import {
-  Message,
-  MessagePubSub,
-  type CurrentlyPlayingRequestMessage,
-  type SongRequestMessage,
-} from "../message-pubsub";
+import { MessagePubSub } from "../pubsub/message-pubsub";
 import { TwitchApiClient } from "./twitch-api";
 import { TwitchEventSubClient } from "./twitch-eventsub";
+import { TwitchEventSubStream } from "./twitch-eventsub-stream";
 
-export const TwitchClientsLive = Layer.mergeAll(
-  TwitchConfig.Live,
-  TwitchApiClient.Live,
-  TwitchEventSubClient.Live,
+export const TwitchServiceRequirementsLive = TwitchEventSubStream.Live.pipe(
+  Layer.provideMerge(TwitchConfig.Live),
+  Layer.provideMerge(TwitchApiClient.Live),
+  Layer.provide(TwitchEventSubClient.Live),
 );
 
-export const TwitchClientsTest = Layer.mergeAll(
-  TwitchConfig.Live,
-  TwitchApiClient.Live,
-  TwitchEventSubClient.Test,
+export const TwitchClientsTest = TwitchEventSubStream.Live.pipe(
+  Layer.provideMerge(TwitchConfig.Live),
+  Layer.provideMerge(TwitchApiClient.Live),
+  Layer.provide(TwitchEventSubClient.Test),
 );
 
 const make = Effect.gen(function* (_) {
@@ -26,64 +22,7 @@ const make = Effect.gen(function* (_) {
 
   const api = yield* TwitchApiClient;
   const config = yield* TwitchConfig;
-  const eventsub = yield* TwitchEventSubClient;
   const pubsub = yield* MessagePubSub;
-
-  const chatMessageStream = Stream.async<CurrentlyPlayingRequestMessage>(
-    (emit) => {
-      eventsub.onChannelChatMessage(
-        config.broadcasterId,
-        config.broadcasterId,
-        async (event) => {
-          if (event.messageText === "!song") {
-            await emit.single(
-              Message.CurrentlyPlayingRequest({
-                requesterDisplayName: event.chatterDisplayName,
-              }),
-            );
-          }
-        },
-      );
-    },
-  );
-
-  const songRequestMessageStream = Stream.async<SongRequestMessage>((emit) => {
-    eventsub.onChannelRedemptionAddForReward(
-      config.broadcasterId,
-      config.songRequestRewardId,
-      (event) =>
-        emit.single(
-          Message.SongRequest({
-            requesterDisplayName: event.userDisplayName,
-            url: event.input,
-          }),
-        ),
-    );
-  });
-
-  const mergedStream = Stream.merge(
-    chatMessageStream,
-    songRequestMessageStream,
-  );
-
-  const messagePull = yield* Stream.toPull(mergedStream);
-
-  yield* Effect.forkScoped(
-    Effect.forever(
-      Effect.gen(function* () {
-        const chunk = yield* messagePull;
-        const message = yield* Chunk.head(chunk);
-
-        Effect.logInfo(
-          `Received ${message._tag} message from twitch eventsub from @${message.requesterDisplayName}`,
-        );
-
-        yield* pubsub.publish(message);
-      }),
-    ),
-  ).pipe(
-    Effect.annotateLogs({ fiber_name: "twitch-eventsub-merged-stream-fiber" }),
-  );
 
   const currentlyPlayingSubscriber =
     yield* pubsub.subscribeTo("CurrentlyPlaying");
@@ -105,13 +44,7 @@ const make = Effect.gen(function* (_) {
           .use((client) =>
             client.chat.sendChatMessage(config.broadcasterId, message),
           )
-          .pipe(
-            Effect.tapError((error) =>
-              Effect.logError(
-                `An error occured while sending chat message: ${String(error.cause)}`,
-              ),
-            ),
-          );
+          .pipe(Effect.tapError(Effect.logError));
 
         yield* Effect.logInfo(
           `Successfully sent CurrentlyPlayingMessage to twitch for @${requesterDisplayName}`,
@@ -134,5 +67,5 @@ const make = Effect.gen(function* (_) {
 );
 
 export const TwitchService = Layer.scopedDiscard(make).pipe(
-  Layer.provide(TwitchClientsLive),
+  Layer.provide(TwitchServiceRequirementsLive),
 );
