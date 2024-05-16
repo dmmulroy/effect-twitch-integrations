@@ -1,11 +1,7 @@
 import { Context, Effect, Layer, Queue } from "effect";
-import { MessagePubSub } from "../pubsub/message-pubsub";
-import { TwitchApiClient } from "./twitch-api";
-import { TwitchConfig } from "./twitch-config";
+import { Message, MessagePubSub } from "../pubsub/message-pubsub";
 
 const make = Effect.gen(function* () {
-	const api = yield* TwitchApiClient;
-	const config = yield* TwitchConfig;
 	const pubsub = yield* MessagePubSub;
 
 	const currentlyPlayingSubscriber =
@@ -24,16 +20,8 @@ const make = Effect.gen(function* () {
 					`Received a CurrentlyPlayingMessage for @${requesterDisplayName}. ${message}`,
 				);
 
-				yield* api
-					.use((client) =>
-						client.chat.sendChatMessage(config.broadcasterId, message),
-					)
-					.pipe(Effect.tapError(Effect.logError));
-
-				yield* Effect.logInfo(
-					`Successfully sent CurrentlyPlayingMessage to twitch for @${requesterDisplayName}`,
-				);
-			}),
+				yield* pubsub.publish(Message.SendTwitchChat({ message }));
+			}).pipe(Effect.catchAll(() => Effect.void)),
 		),
 	).pipe(
 		Effect.annotateLogs({

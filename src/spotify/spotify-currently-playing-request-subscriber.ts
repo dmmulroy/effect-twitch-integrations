@@ -32,9 +32,8 @@ const make = Effect.gen(function* () {
 								);
 
 								yield* pubsub.publish(
-									Message.SongRequestError({
-										requesterDisplayName: message.requesterDisplayName,
-										cause: error,
+									Message.SendTwitchChat({
+										message: `@${message.requesterDisplayName} your request for the currently playing song failed 😭`,
 									}),
 								);
 							}),
@@ -50,13 +49,6 @@ const make = Effect.gen(function* () {
 						`The currently playing item is not a song: ${item.uri}`,
 					);
 
-					yield* pubsub.publish(
-						Message.InvalidSongRequest({
-							requesterDisplayName: message.requesterDisplayName,
-							reason: "The currently playing item is not a song",
-						}),
-					);
-
 					return;
 				}
 
@@ -67,7 +59,7 @@ const make = Effect.gen(function* () {
 						requesterDisplayName: message.requesterDisplayName,
 					}),
 				);
-			}),
+			}).pipe(Effect.catchAll(() => Effect.void)),
 		),
 	);
 

@@ -4,8 +4,10 @@ import { TwitchApiClient } from "./twitch-api";
 import { TwitchEventSubClient } from "./twitch-eventsub";
 import { TwitchEventSubStream } from "./twitch-eventsub-stream";
 import { TwitchCurrentlyPlayingSubscriber } from "./twitch-currently-playing-subscriber";
+import { TwitchSendTwitchShatSubscriber } from "./twitch-send-twitch-shat-subscriber";
 
 const TwitchServiceRequirementsLive = TwitchEventSubStream.Live.pipe(
+	Layer.provide(TwitchSendTwitchShatSubscriber.Live),
 	Layer.provide(TwitchCurrentlyPlayingSubscriber.Live),
 	Layer.provide(TwitchConfig.Live),
 	Layer.provide(TwitchApiClient.Live),

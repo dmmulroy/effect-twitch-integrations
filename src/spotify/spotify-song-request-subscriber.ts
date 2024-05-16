@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Queue, Option } from "effect";
-import { MessagePubSub } from "../pubsub/message-pubsub";
+import { Message, MessagePubSub } from "../pubsub/message-pubsub";
 import { SpotifyApiClient } from "./spotify-api";
 import { SpotifyError } from "./spotify-error";
 
@@ -17,7 +17,17 @@ const make = Effect.gen(function* () {
 				const message = yield* Queue.take(songRequestSubscriber);
 
 				const songId = yield* getSongIdFromUrl(message.url).pipe(
-					Effect.tapError(Effect.logError),
+					Effect.tapError((error) =>
+						Effect.gen(function* () {
+							yield* Effect.logError(error);
+
+							yield* pubsub.publish(
+								Message.SendTwitchChat({
+									message: `@${message.requesterDisplayName} your song request was invalid. Did your request a podcast? 🤨`,
+								}),
+							);
+						}),
+					),
 				);
 
 				yield* spotify
@@ -25,13 +35,20 @@ const make = Effect.gen(function* () {
 						client.player.addItemToPlaybackQueue(`spotify:track:${songId}`),
 					)
 					.pipe(Effect.tapError(Effect.logError));
-			}).pipe(
-				Effect.annotateLogs({
-					module: "spotify-currently-playing-request-subscriber",
-				}),
-			),
+
+				const track = yield* spotify.use((client) => client.tracks.get(songId));
+
+				yield* pubsub.publish(
+					Message.SendTwitchChat({
+						message: `@${message.requesterDisplayName} requested ${
+							track.name
+						} by ${track.artists.map((artist) => artist.name).join(", ")}`,
+					}),
+				);
+			}).pipe(Effect.catchAll(() => Effect.void)),
 		),
 	);
+
 	yield* Effect.acquireRelease(
 		Effect.logInfo(`SpotifySongRequestSubscriber started`),
 		() => Effect.logInfo(`SpotifySongRequestSubscriber stopped`),
