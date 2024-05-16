@@ -3,7 +3,7 @@ import {
   StaticAuthProvider,
   type AuthProvider,
 } from "@twurple/auth";
-import { Context, Effect, Fiber, Layer, Secret } from "effect";
+import { Context, Effect, Layer, Secret } from "effect";
 import { TwitchConfig } from "./twitch-config";
 
 const makeRefreshingAuthProvider = Effect.gen(function* () {
@@ -53,10 +53,10 @@ export class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
   static RefreshingAuthProviderLive = Layer.scoped(
     this,
     makeRefreshingAuthProvider,
-  ).pipe(Layer.provide(TwitchConfig.Live));
+  )
 
   static StaticAuthProviderLive = Layer.scoped(
     this,
     makeStaticAuthProvider,
-  ).pipe(Layer.provide(TwitchConfig.Live));
+  )
 }

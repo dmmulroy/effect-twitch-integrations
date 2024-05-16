@@ -44,6 +44,7 @@ type MessageTypeToMessage = {
 
 export type IMessagePubSub = Readonly<{
 	publish: (message: Message) => Effect.Effect<boolean>;
+	unsafePublish: (message: Message) => boolean;
 	subscribe: () => Effect.Effect<Queue.Dequeue<Message>, never, Scope.Scope>;
 	subscribeTo: <T extends MessageType>(
 		messageType: T,
@@ -69,8 +70,8 @@ const make = Effect.gen(function* () {
 
 	return MessagePubSub.of({
 		publish: (message) => PubSub.publish(pubsub, message),
+		unsafePublish: (message) => pubsub.unsafeOffer(message),
 		subscribe: () => PubSub.subscribe(pubsub),
-
 		subscribeTo: <T extends MessageType>(messageType: T) =>
 			Effect.gen(function* () {
 				const queue = yield* Effect.acquireRelease(

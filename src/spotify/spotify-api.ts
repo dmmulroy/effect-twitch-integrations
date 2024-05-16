@@ -71,9 +71,7 @@ export class SpotifyApiClient extends Context.Tag("spotify-api-client")<
 	SpotifyApiClient,
 	ISpotifyApiClient
 >() {
-	static Live = Layer.effect(this, make).pipe(
-		Layer.provide(SpotifyConfig.Live),
-	);
+	static Live = Layer.effect(this, make);
 }
 
 export function requestAccessToken(code: string) {

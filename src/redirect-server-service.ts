@@ -59,7 +59,7 @@ export class RedirectServer extends Context.Tag("redirect-server")<
 				});
 			});
 		}),
-	).pipe(Layer.provide(SpotifyConfig.Live));
+	);
 }
 
 function makeRouter(

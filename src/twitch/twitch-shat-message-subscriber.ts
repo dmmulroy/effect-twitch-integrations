@@ -43,8 +43,7 @@ const make = Effect.gen(function* () {
 });
 
 export class TwitchCurrentlyPlayingSubscriber extends Context.Tag(
-	"twitch-
-  subscriber",
+	"twitch-currently-playing-subscriber",
 )<TwitchCurrentlyPlayingSubscriber, never>() {
 	static Live = Layer.scopedDiscard(make);
 }
