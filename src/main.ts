@@ -5,12 +5,12 @@ import { SpotifyService } from "./spotify/spotify-service";
 import { TwitchService } from "./twitch/twitch-service";
 
 const BunTime = {
-  funTime: BunRuntime.runMain,
+	funTime: BunRuntime.runMain,
 };
 
 const MainLive = Layer.provide(
-  Layer.mergeAll(TwitchService, SpotifyService),
-  MessagePubSub.Live,
+	Layer.mergeAll(TwitchService, SpotifyService),
+	MessagePubSub.Live,
 );
 
 BunTime.funTime(Layer.launch(MainLive));

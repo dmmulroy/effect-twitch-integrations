@@ -24,7 +24,7 @@ const makeRefreshingAuthProvider = Effect.gen(function* () {
   );
 
   return authProvider;
-}).pipe(Effect.annotateLogs({ fiber_name: "twitch-refreshing-auth-provider" }));
+}).pipe(Effect.annotateLogs({ module: "twitch-refreshing-auth-provider" }));
 
 const makeStaticAuthProvider = Effect.gen(function* () {
   yield* Effect.logInfo("Starting TwitchAuthProvider");
@@ -44,7 +44,7 @@ const makeStaticAuthProvider = Effect.gen(function* () {
   );
 
   return authProvider;
-}).pipe(Effect.annotateLogs({ fiber_name: "twitch-static-auth-provider" }));
+}).pipe(Effect.annotateLogs({ module: "twitch-static-auth-provider" }));
 
 export class TwitchAuthProvider extends Context.Tag("twitch-auth-provider")<
   TwitchAuthProvider,
