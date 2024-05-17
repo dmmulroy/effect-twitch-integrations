@@ -1,7 +1,7 @@
 import { BunRuntime } from "@effect/platform-bun";
 import { Layer } from "effect";
-import { SpotifyService } from "./spotify/spotify-service";
-import { TwitchService } from "./twitch/twitch-service";
+import { SpotifyService } from "./spotify/service";
+import { TwitchService } from "./twitch/service";
 
 const BunTime = {
 	funTime: BunRuntime.runMain,

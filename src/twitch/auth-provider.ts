@@ -4,7 +4,7 @@ import {
   type AuthProvider,
 } from "@twurple/auth";
 import { Context, Effect, Layer, Secret } from "effect";
-import { TwitchConfig } from "./twitch-config";
+import { TwitchConfig } from "./config";
 
 const makeRefreshingAuthProvider = Effect.gen(function* () {
   yield* Effect.logInfo("Starting TwitchAuthProvider");

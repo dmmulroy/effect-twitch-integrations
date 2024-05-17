@@ -1,9 +1,9 @@
 import { Deferred, Effect, Layer } from "effect";
 import { RedirectServer } from "./redirect-server-service";
-import { SpotifyConfig } from "./spotify/spotify-config";
+import { SpotifyConfig } from "./spotify/config";
 import { Browser } from "./browser";
 import { BunRuntime } from "@effect/platform-bun";
-import { requestAccessToken } from "./spotify/spotify-api";
+import { requestAccessToken } from "./spotify/api";
 
 const BunTime = {
 	funTime: BunRuntime.runMain,

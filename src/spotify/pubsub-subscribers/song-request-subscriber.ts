@@ -1,13 +1,14 @@
-import { Context, Effect, Layer, Queue, Option } from "effect";
-import { Message, MessagePubSub } from "../pubsub/message-pubsub";
-import { SpotifyApiClient } from "./spotify-api";
-import { SpotifyError } from "./spotify-error";
+import { Effect, Layer, Queue, Option } from "effect";
+import { PubSubService } from "../../pubsub/client";
+import { SpotifyApiClient } from "../api";
+import { SpotifyError } from "../error";
+import { Message } from "../../pubsub/messages";
 
 const make = Effect.gen(function* () {
 	yield* Effect.logInfo(`Starting SpotifySongRequestSubscriber`);
 
 	const spotify = yield* SpotifyApiClient;
-	const pubsub = yield* MessagePubSub;
+	const pubsub = yield* PubSubService;
 
 	const songRequestSubscriber = yield* pubsub.subscribeTo("SongRequest");
 
@@ -59,11 +60,10 @@ const make = Effect.gen(function* () {
 	}),
 );
 
-export class SpotifySongRequestSubscriber extends Context.Tag(
-	"spotify-currently-playing-request-subscriber",
-)<SpotifySongRequestSubscriber, never>() {
-	static Live = Layer.scopedDiscard(make);
-}
+export const SpotifySongRequestSubscriber = Layer.scopedDiscard(make).pipe(
+	Layer.provide(PubSubService.Live),
+	Layer.provide(SpotifyApiClient.Live),
+);
 
 const songIdRegex = new RegExp(/\/track\/([a-zA-z0-9]*)/);
 

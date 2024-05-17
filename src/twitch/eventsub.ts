@@ -1,6 +1,6 @@
 import { EventSubWsListener } from "@twurple/eventsub-ws";
 import { Context, Effect, Layer } from "effect";
-import { TwitchApiClient } from "./twitch-api";
+import { TwitchApiClient } from "./api";
 
 const make = Effect.gen(function* (_) {
 	yield* Effect.logInfo("Starting TwitchEventSubClient");

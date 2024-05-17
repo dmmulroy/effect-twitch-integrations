@@ -1,48 +1,7 @@
-import {
-	Context,
-	Data,
-	Effect,
-	Layer,
-	PubSub,
-	Queue,
-	Scope,
-	Types,
-} from "effect";
+import { Context, Effect, Layer, PubSub, Queue, Scope } from "effect";
+import type { Message, MessageType, MessageTypeToMessage } from "./messages";
 
-export type Message = Data.TaggedEnum<{
-	CurrentlyPlaying: {
-		song: string;
-		artists: ReadonlyArray<string>;
-		requesterDisplayName: string;
-	};
-	CurrentlyPlayingRequest: { requesterDisplayName: string };
-	SendTwitchChat: { message: string };
-	SongRequest: { requesterDisplayName: string; url: string };
-}>;
-
-export type MessageType = Types.Tags<Message>;
-
-type ExtractMessage<T extends MessageType> = Types.ExtractTag<Message, T>;
-
-export type CurrentlyPlayingRequestMessage =
-	ExtractMessage<"CurrentlyPlayingRequest">;
-
-export type CurrentlyPlayingMessage = ExtractMessage<"CurrentlyPlaying">;
-
-export type SendTwitchChatMessage = ExtractMessage<"SendTwitchChat">;
-
-export type SongRequestMessage = ExtractMessage<"SongRequest">;
-
-export const Message = Data.taggedEnum<Message>();
-
-type MessageTypeToMessage = {
-	CurrentlyPlayingRequest: CurrentlyPlayingRequestMessage;
-	CurrentlyPlaying: CurrentlyPlayingMessage;
-	SendTwitchChat: SendTwitchChatMessage;
-	SongRequest: SongRequestMessage;
-};
-
-export type IMessagePubSub = Readonly<{
+export type IPubSubService = Readonly<{
 	publish: (message: Message) => Effect.Effect<boolean>;
 	unsafePublish: (message: Message) => boolean;
 	subscribe: () => Effect.Effect<Queue.Dequeue<Message>, never, Scope.Scope>;
@@ -68,7 +27,7 @@ const make = Effect.gen(function* () {
 			),
 	);
 
-	return MessagePubSub.of({
+	return PubSubService.of({
 		publish: (message) => PubSub.publish(pubsub, message),
 		unsafePublish: (message) => pubsub.unsafeOffer(message),
 		subscribe: () => PubSub.subscribe(pubsub),
@@ -104,9 +63,9 @@ const make = Effect.gen(function* () {
 	});
 }).pipe(Effect.annotateLogs({ module: "message-pubsub" }));
 
-export class MessagePubSub extends Context.Tag("message-pubsub")<
-	MessagePubSub,
-	IMessagePubSub
+export class PubSubService extends Context.Tag("message-pubsub")<
+	PubSubService,
+	IPubSubService
 >() {
 	static Live = Layer.scoped(this, make);
 }

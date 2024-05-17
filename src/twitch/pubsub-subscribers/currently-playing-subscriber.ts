@@ -1,8 +1,9 @@
-import { Context, Effect, Layer, Queue } from "effect";
-import { Message, MessagePubSub } from "../pubsub/message-pubsub";
+import { Effect, Layer, Queue } from "effect";
+import { PubSubService } from "../../pubsub/client";
+import { Message } from "../../pubsub/messages";
 
 const make = Effect.gen(function* () {
-	const pubsub = yield* MessagePubSub;
+	const pubsub = yield* PubSubService;
 
 	const currentlyPlayingSubscriber =
 		yield* pubsub.subscribeTo("CurrentlyPlaying");
@@ -24,14 +25,15 @@ const make = Effect.gen(function* () {
 			}).pipe(Effect.catchAll(() => Effect.void)),
 		),
 	).pipe(
+		Effect.catchAllDefect(() =>
+			Effect.logInfo("Stopped TwitchSendTwitchShatSubscriber"),
+		),
 		Effect.annotateLogs({
 			module: "twitch-currently-playing-subscriber",
 		}),
 	);
 });
 
-export class TwitchCurrentlyPlayingSubscriber extends Context.Tag(
-	"twitch-currently-playing-subscriber",
-)<TwitchCurrentlyPlayingSubscriber, never>() {
-	static Live = Layer.scopedDiscard(make);
-}
+export const TwitchCurrentlyPlayingSubscriber = Layer.scopedDiscard(make).pipe(
+	Layer.provide(PubSubService.Live),
+);

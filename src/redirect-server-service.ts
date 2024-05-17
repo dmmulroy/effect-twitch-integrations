@@ -1,5 +1,5 @@
 import { Context, Deferred, Effect, Layer, Option, Secret } from "effect";
-import { SpotifyConfig } from "./spotify/spotify-config";
+import { SpotifyConfig } from "./spotify/config";
 
 export type RedirectServerOptions = Readonly<{
 	clientId: string;

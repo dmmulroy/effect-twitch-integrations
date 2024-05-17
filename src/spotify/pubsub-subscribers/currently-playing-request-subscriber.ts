@@ -1,12 +1,13 @@
 import { Context, Effect, Layer, Queue } from "effect";
-import { Message, MessagePubSub } from "../pubsub/message-pubsub";
-import { SpotifyApiClient } from "./spotify-api";
+import { PubSubService } from "../../pubsub/client";
+import { SpotifyApiClient } from "../api";
+import { Message } from "../../pubsub/messages";
 
 const make = Effect.gen(function* () {
 	yield* Effect.logInfo(`Starting SpotifyCurrentlyPlayingRequestSubscriber`);
 
 	const spotify = yield* SpotifyApiClient;
-	const pubsub = yield* MessagePubSub;
+	const pubsub = yield* PubSubService;
 
 	const currentPlayingSubscriber = yield* pubsub.subscribeTo(
 		"CurrentlyPlayingRequest",
@@ -73,8 +74,6 @@ const make = Effect.gen(function* () {
 	}),
 );
 
-export class SpotifyCurrentlyPlayingRequestSubscriber extends Context.Tag(
-	"spotify-currently-playing-request-subscriber",
-)<SpotifyCurrentlyPlayingRequestSubscriber, never>() {
-	static Live = Layer.scopedDiscard(make);
-}
+export const SpotifyCurrentlyPlayingRequestSubscriber = Layer.scopedDiscard(
+	make,
+).pipe(Layer.provide(PubSubService.Live), Layer.provide(SpotifyApiClient.Live));

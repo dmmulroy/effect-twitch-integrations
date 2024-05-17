@@ -5,8 +5,8 @@ import {
 	type AccessToken,
 } from "@spotify/web-api-ts-sdk";
 import { Context, Effect, Encoding, Layer, Secret } from "effect";
-import { SpotifyError } from "./spotify-error";
-import { SpotifyConfig } from "./spotify-config";
+import { SpotifyError } from "./error";
+import { SpotifyConfig } from "./config";
 
 export type ISpotifyApiClient = Readonly<{
 	client: SpotifyApi;

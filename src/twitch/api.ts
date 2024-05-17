@@ -1,7 +1,7 @@
 import { ApiClient } from "@twurple/api";
 import { Context, Effect, Layer } from "effect";
-import { TwitchError } from "./twitch-error";
-import { TwitchAuthProvider } from "./twitch-auth-provider";
+import { TwitchError } from "./error";
+import { TwitchAuthProvider } from "./auth-provider";
 
 export type ITwitchApiClient = Readonly<{
   client: ApiClient;
