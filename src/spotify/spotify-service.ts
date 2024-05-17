@@ -1,8 +1,7 @@
-import { Effect, Layer, Queue, Option, PubSub, Logger } from "effect";
-import { Message, MessagePubSub } from "../pubsub/message-pubsub";
+import { Effect, Layer } from "effect";
+import { MessagePubSub } from "../pubsub/message-pubsub";
 import { SpotifyApiClient } from "./spotify-api";
 import { SpotifyCurrentlyPlayingRequestSubscriber } from "./spotify-currently-playing-request-subscriber";
-import { SpotifyConfig } from "./spotify-config";
 import { SpotifySongRequestSubscriber } from "./spotify-song-request-subscriber";
 
 const make = Effect.gen(function* () {
@@ -14,6 +13,8 @@ const make = Effect.gen(function* () {
 }).pipe(Effect.annotateLogs({ module: "spotify-service" }));
 
 export const SpotifyService = Layer.scopedDiscard(make).pipe(
+	Layer.provide(SpotifyCurrentlyPlayingRequestSubscriber.Live),
+	Layer.provide(SpotifySongRequestSubscriber.Live),
 	Layer.provide(SpotifyApiClient.Live),
 	Layer.provide(MessagePubSub.Live),
 );
