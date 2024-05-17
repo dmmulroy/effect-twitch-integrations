@@ -1,4 +1,5 @@
 import {
+	AccessTokenHelpers,
 	ProvidedAccessTokenStrategy,
 	SpotifyApi,
 	type AccessToken,
@@ -20,22 +21,36 @@ const make = Effect.gen(function* () {
 	const client = yield* Effect.sync(() => {
 		const client = SpotifyApi.withAccessToken(
 			config.clientId,
+			Secret.value(config.clientSecret),
 			config.accessToken,
 		);
 
 		client.switchAuthenticationStrategy(
 			new ProvidedAccessTokenStrategy(
 				config.clientId,
+				Secret.value(config.clientSecret),
 				config.accessToken,
-				async (_, accessToken) => {
+				async (clientId, clientSecret, accessToken) => {
+					const refreshedToken =
+						await AccessTokenHelpers.refreshCachedAccessToken(
+							clientId,
+							clientSecret,
+							accessToken,
+						);
+
+					const newAccessToken = { ...accessToken, ...refreshedToken };
+
 					await Bun.write(
 						"src/do_not_open_on_stream/access-token.json",
-						JSON.stringify(accessToken, null, 2),
+						JSON.stringify(newAccessToken, null, 2),
 					);
 
-					Effect.runSync(Effect.logInfo("Refreshed Spotify AccessToken"));
+					Effect.logInfo("Refreshed Spotify AccessToken").pipe(
+						Effect.annotateLogs({ module: "@spotify/web-api-ts-sdk" }),
+						Effect.runSync,
+					);
 
-					return accessToken;
+					return newAccessToken;
 				},
 			),
 		);
@@ -46,7 +61,7 @@ const make = Effect.gen(function* () {
 	const use = <A>(fn: (client: SpotifyApi) => Promise<A>) =>
 		Effect.tryPromise({
 			try: () => fn(client),
-			catch: (cause) => new SpotifyError({ cause }),
+			catch: (cause) => new SpotifyError({ cause: String(cause) }),
 		});
 
 	return { use, client } as const;
