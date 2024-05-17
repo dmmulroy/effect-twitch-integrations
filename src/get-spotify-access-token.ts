@@ -9,8 +9,6 @@ const BunTime = {
 	funTime: BunRuntime.runMain,
 };
 
-const MainLive = Layer.merge(SpotifyConfig.Live, RedirectServer.Live);
-
 const getAccessToken = Effect.gen(function* () {
 	const config = yield* SpotifyConfig;
 	const redirectServer = yield* RedirectServer;
@@ -42,6 +40,6 @@ const getAccessToken = Effect.gen(function* () {
 			JSON.stringify(accessToken, null, 2),
 		),
 	);
-}).pipe(Effect.provide(MainLive));
+}).pipe(Effect.provide(RedirectServer.Live));
 
 BunTime.funTime(getAccessToken);

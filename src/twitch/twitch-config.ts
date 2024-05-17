@@ -1,21 +1,11 @@
 import { Config, Context, Effect, Layer, Secret } from "effect";
 
-export type ITwitchConfig = Readonly<{
-  accessToken: Secret.Secret;
-  clientId: string;
-  clientSecret: Secret.Secret;
-  broadcasterId: string;
-  broadcasterUsername: string;
-  scopes: Array<string>;
-  songRequestRewardId: string;
-}>;
-
-export const makeTwitchConfig = Effect.gen(function* () {
-  const clientId = yield* Config.string("TWITCH_CLIENT_ID");
-  const clientSecret = yield* Config.secret("TWITCH_CLIENT_SECRET");
-  const accessToken = yield* Config.secret("TWITCH_ACCESS_TOKEN");
-
-  return {
+export const TwitchConfig = Config.all({
+  clientId: Config.string("TWITCH_CLIENT_ID"),
+  clientSecret: Config.secret("TWITCH_CLIENT_SECRET"),
+  accessToken: Config.secret("TWITCH_ACCESS_TOKEN"),
+}).pipe(
+  Config.map(({ clientId, clientSecret, accessToken }) => ({
     accessToken,
     clientId,
     clientSecret,
@@ -36,12 +26,5 @@ export const makeTwitchConfig = Effect.gen(function* () {
       "user:read:chat",
     ],
     songRequestRewardId: "1abfa295-f609-48f3-aaed-fd7a4b441e9e",
-  };
-});
-
-export class TwitchConfig extends Context.Tag("twitch-config")<
-  TwitchConfig,
-  ITwitchConfig
->() {
-  static Live = Layer.effect(this, makeTwitchConfig);
-}
+  })
+))
