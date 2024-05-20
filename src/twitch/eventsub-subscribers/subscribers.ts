@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { TwitchEventSubChannelChatMessageSubscriber } from "./channel-chat-message-subscriber";
+import { TwitchEventSubChannelChatMessageSubscriber } from "./channel-chat-message";
 import { TwitchEventSubChannelRedemptionAddForReward } from "./channel-redemption-add-for-reward";
 
 const make = Effect.gen(function* () {

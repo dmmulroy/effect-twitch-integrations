@@ -1,10 +1,10 @@
 import { Context, Effect, Layer, Queue } from "effect";
-import { PubSubService } from "../../pubsub/client";
-import { SpotifyApiClient } from "../api";
-import { Message } from "../../pubsub/messages";
+import { PubSubService } from "../client";
+import { SpotifyApiClient } from "../../spotify/api";
+import { Message } from "../messages";
 
 const make = Effect.gen(function* () {
-	yield* Effect.logInfo(`Starting SpotifyCurrentlyPlayingRequestSubscriber`);
+	yield* Effect.logInfo(`Starting CurrentlyPlayingRequestSubscriber`);
 
 	const spotify = yield* SpotifyApiClient;
 	const pubsub = yield* PubSubService;
@@ -65,15 +65,16 @@ const make = Effect.gen(function* () {
 	);
 
 	yield* Effect.acquireRelease(
-		Effect.logInfo(`SpotifyCurrentlyPlayingRequestSubscriber started`),
-		() => Effect.logInfo(`SpotifyCurrentlyPlayingRequestSubscriber stopped`),
+		Effect.logInfo(`CurrentlyPlayingRequestSubscriber started`),
+		() => Effect.logInfo(`CurrentlyPlayingRequestSubscriber stopped`),
 	);
 }).pipe(
 	Effect.annotateLogs({
-		module: "spotify-currently-playing-request-subscriber",
+		module: "currently-playing-request-subscriber",
 	}),
 );
 
-export const SpotifyCurrentlyPlayingRequestSubscriber = Layer.scopedDiscard(
-	make,
-).pipe(Layer.provide(PubSubService.Live), Layer.provide(SpotifyApiClient.Live));
+export const CurrentlyPlayingRequestSubscriber = Layer.scopedDiscard(make).pipe(
+	Layer.provide(PubSubService.Live),
+	Layer.provide(SpotifyApiClient.Live),
+);

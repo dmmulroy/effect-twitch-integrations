@@ -1,3 +1,4 @@
+import type { Queue as SpotifyQueue } from "@spotify/web-api-ts-sdk";
 import { Data, Types } from "effect";
 
 export type Message = Data.TaggedEnum<{
@@ -10,6 +11,7 @@ export type Message = Data.TaggedEnum<{
 	SendTwitchChat: { message: string };
 	SongRequest: { requesterDisplayName: string; url: string };
 	SongQueueRequest: {};
+	SongQueue: { queue: SpotifyQueue };
 }>;
 
 export const Message = Data.taggedEnum<Message>();
@@ -26,7 +28,10 @@ export type CurrentlyPlayingMessage = ExtractMessage<"CurrentlyPlaying">;
 export type SendTwitchChatMessage = ExtractMessage<"SendTwitchChat">;
 
 export type SongRequestMessage = ExtractMessage<"SongRequest">;
+
 export type SongQueueRequestMessage = ExtractMessage<"SongQueueRequest">;
+
+export type SongQueueMessage = ExtractMessage<"SongQueue">;
 
 export type MessageTypeToMessage = {
 	CurrentlyPlayingRequest: CurrentlyPlayingRequestMessage;
@@ -34,4 +39,5 @@ export type MessageTypeToMessage = {
 	SendTwitchChat: SendTwitchChatMessage;
 	SongRequest: SongRequestMessage;
 	SongQueueRequest: SongQueueRequestMessage;
+	SongQueue: SongQueueMessage;
 };

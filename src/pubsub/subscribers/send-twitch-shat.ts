@@ -1,10 +1,10 @@
 import { Effect, Layer, Queue } from "effect";
-import { PubSubService } from "../../pubsub/client";
-import { TwitchApiClient } from "../api";
-import { TwitchConfig } from "../config";
+import { PubSubService } from "../client";
+import { TwitchApiClient } from "../../twitch/api";
+import { TwitchConfig } from "../../twitch/config";
 
 const make = Effect.gen(function* () {
-	yield* Effect.logInfo("Starting TwitchSendTwitchShatSubscriber");
+	yield* Effect.logInfo("Starting SendTwitchShatSubscriber");
 
 	const api = yield* TwitchApiClient;
 	const config = yield* TwitchConfig;
@@ -26,18 +26,18 @@ const make = Effect.gen(function* () {
 		),
 	).pipe(
 		Effect.catchAllDefect(() =>
-			Effect.logInfo("Stopped TwitchSendTwitchShatSubscriber"),
+			Effect.logInfo("Stopped SendTwitchShatSubscriber"),
 		),
 	);
 
-	yield* Effect.logInfo("TwitchSendTwitchShatSubscriber started");
+	yield* Effect.logInfo("SendTwitchShatSubscriber started");
 }).pipe(
 	Effect.annotateLogs({
-		module: "twitch-send-twitch-shat-subscriber",
+		module: "send-twitch-shat-subscriber",
 	}),
 );
 
-export const TwitchSendTwitchShatSubscriber = Layer.scopedDiscard(make).pipe(
+export const SendTwitchShatSubscriber = Layer.scopedDiscard(make).pipe(
 	Layer.provide(PubSubService.Live),
 	Layer.provide(TwitchApiClient.Live),
 );

@@ -1,6 +1,6 @@
 import { Effect, Layer, Queue } from "effect";
-import { PubSubService } from "../../pubsub/client";
-import { Message } from "../../pubsub/messages";
+import { PubSubService } from "../client";
+import { Message } from "../messages";
 
 const make = Effect.gen(function* () {
 	const pubsub = yield* PubSubService;
@@ -26,14 +26,14 @@ const make = Effect.gen(function* () {
 		),
 	).pipe(
 		Effect.catchAllDefect(() =>
-			Effect.logInfo("Stopped TwitchSendTwitchShatSubscriber"),
+			Effect.logInfo("Stopped CurrentlyPlayingSubscriber"),
 		),
 		Effect.annotateLogs({
-			module: "twitch-currently-playing-subscriber",
+			module: "currently-playing-subscriber",
 		}),
 	);
 });
 
-export const TwitchCurrentlyPlayingSubscriber = Layer.scopedDiscard(make).pipe(
+export const CurrentlyPlayingSubscriber = Layer.scopedDiscard(make).pipe(
 	Layer.provide(PubSubService.Live),
 );
