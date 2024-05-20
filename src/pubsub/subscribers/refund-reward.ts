@@ -31,7 +31,7 @@ const make = Effect.gen(function* () {
 
 				yield* pubsub.publish(
 					Message.SendTwitchChat({
-						message: `@${message.requesterDisplayName} your points have been redeemed`,
+						message: `@${message.requesterDisplayName} your points have been refunded`,
 					}),
 				);
 			}).pipe(Effect.catchAll(() => Effect.void)),
