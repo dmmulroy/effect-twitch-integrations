@@ -19,6 +19,8 @@ const make = Effect.gen(function* () {
 				(event) =>
 					pubsub.unsafePublish(
 						Message.SongRequest({
+							eventId: event.id,
+							rewardId: event.rewardId,
 							requesterDisplayName: event.userDisplayName,
 							url: event.input,
 						}),

@@ -5,6 +5,7 @@ import { SongQueueRequestSubscriber } from "./song-queue-request";
 import { CurrentlyPlayingSubscriber } from "./currently-playing";
 import { SendTwitchShatSubscriber } from "./send-twitch-shat";
 import { SongQueueSubscriber } from "./song-queue";
+import { RefundRewardSubscriber } from "./refund-reward";
 
 const make = Effect.gen(function* () {
 	yield* Effect.logInfo("Starting PubSubSubscribers");
@@ -22,4 +23,5 @@ export const PubSubSubscribers = Layer.scopedDiscard(make).pipe(
 	Layer.provide(SongRequestSubscriber),
 	Layer.provide(SongQueueSubscriber),
 	Layer.provide(SongQueueRequestSubscriber),
+	Layer.provide(RefundRewardSubscriber),
 );

@@ -9,9 +9,19 @@ export type Message = Data.TaggedEnum<{
 	};
 	CurrentlyPlayingRequest: { requesterDisplayName: string };
 	SendTwitchChat: { message: string };
-	SongRequest: { requesterDisplayName: string; url: string };
+	SongRequest: {
+		eventId: string;
+		requesterDisplayName: string;
+		rewardId: string;
+		url: string;
+	};
 	SongQueueRequest: {};
 	SongQueue: { queue: SpotifyQueue };
+	RefundRewardRequest: {
+		eventId: string;
+		requesterDisplayName: string;
+		rewardId: string;
+	};
 }>;
 
 export const Message = Data.taggedEnum<Message>();
@@ -33,6 +43,8 @@ export type SongQueueRequestMessage = ExtractMessage<"SongQueueRequest">;
 
 export type SongQueueMessage = ExtractMessage<"SongQueue">;
 
+export type RefundRewardRequestMessage = ExtractMessage<"RefundRewardRequest">;
+
 export type MessageTypeToMessage = {
 	CurrentlyPlayingRequest: CurrentlyPlayingRequestMessage;
 	CurrentlyPlaying: CurrentlyPlayingMessage;
@@ -40,4 +52,5 @@ export type MessageTypeToMessage = {
 	SongRequest: SongRequestMessage;
 	SongQueueRequest: SongQueueRequestMessage;
 	SongQueue: SongQueueMessage;
+	RefundRewardRequest: RefundRewardRequestMessage;
 };
