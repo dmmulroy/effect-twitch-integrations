@@ -1,5 +1,5 @@
 import { Effect, Layer, Queue } from "effect";
-import { PubSubService } from "../client";
+import { PubSubClient } from "../client";
 import { TwitchApiClient } from "../../twitch/api";
 import { TwitchConfig } from "../../twitch/config";
 
@@ -8,7 +8,7 @@ const make = Effect.gen(function* () {
 
 	const api = yield* TwitchApiClient;
 	const config = yield* TwitchConfig;
-	const pubsub = yield* PubSubService;
+	const pubsub = yield* PubSubClient;
 
 	const subscriber = yield* pubsub.subscribeTo("SendTwitchChat");
 
@@ -38,6 +38,6 @@ const make = Effect.gen(function* () {
 );
 
 export const SendTwitchShatSubscriber = Layer.scopedDiscard(make).pipe(
-	Layer.provide(PubSubService.Live),
+	Layer.provide(PubSubClient.Live),
 	Layer.provide(TwitchApiClient.Live),
 );

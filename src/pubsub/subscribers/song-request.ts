@@ -1,5 +1,5 @@
 import { Effect, Layer, Queue, Option, Schedule } from "effect";
-import { PubSubService, type IPubSubService } from "../client";
+import { PubSubClient, type IPubSubService } from "../client";
 import { SpotifyApiClient } from "../../spotify/api";
 import { SpotifyError } from "../../spotify/error";
 import { Message, type SongRequestMessage } from "../messages";
@@ -12,7 +12,7 @@ const make = Effect.gen(function* () {
 	const spotify = yield* SpotifyApiClient;
 	const twitch = yield* TwitchApiClient;
 	const twitchConfig = yield* TwitchConfig;
-	const pubsub = yield* PubSubService;
+	const pubsub = yield* PubSubClient;
 
 	const songRequestSubscriber = yield* pubsub.subscribeTo("SongRequest");
 
@@ -21,7 +21,7 @@ const make = Effect.gen(function* () {
 			Effect.gen(function* (_) {
 				const message = yield* Queue.take(songRequestSubscriber);
 
-				const handleError = logErrorAndRefundPoints(message, pubsub);
+				const handleError = makeErrorHandler(message, pubsub);
 
 				const songId = yield* getSongIdFromUrl(message.url).pipe(handleError);
 
@@ -59,6 +59,13 @@ const make = Effect.gen(function* () {
 						}),
 					)
 					.pipe(Effect.tapError(Effect.logError));
+
+				yield* pubsub.publish(
+					Message.SongAddedToSpotifyQueue({
+						requesterDisplayName: message.requesterDisplayName,
+						trackId: track.id,
+					}),
+				);
 			}).pipe(Effect.catchAll(() => Effect.void)),
 		),
 	);
@@ -74,7 +81,7 @@ const make = Effect.gen(function* () {
 );
 
 export const SongRequestSubscriber = Layer.scopedDiscard(make).pipe(
-	Layer.provide(PubSubService.Live),
+	Layer.provide(PubSubClient.Live),
 	Layer.provide(SpotifyApiClient.Live),
 	Layer.provide(TwitchApiClient.Live),
 );
@@ -90,10 +97,7 @@ function getSongIdFromUrl(url: string): Effect.Effect<string, SpotifyError> {
 	);
 }
 
-function logErrorAndRefundPoints(
-	message: SongRequestMessage,
-	pubsub: IPubSubService,
-) {
+function makeErrorHandler(message: SongRequestMessage, pubsub: IPubSubService) {
 	return Effect.tapError((error) => {
 		return Effect.logError(error).pipe(
 			Effect.andThen(() =>

@@ -19,7 +19,7 @@ export class RedirectServer extends Context.Tag("redirect-server")<
 	IRedirectServer
 >() {
 	static Live = Layer.scoped(
-		RedirectServer,
+		this,
 		Effect.flatMap(SpotifyConfig, (config) => {
 			return Effect.gen(function* () {
 				const mailbox = yield* Deferred.make<string, Error>();

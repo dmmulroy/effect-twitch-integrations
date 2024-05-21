@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Queue } from "effect";
-import { PubSubService } from "../client";
+import { PubSubClient } from "../client";
 import { SpotifyApiClient } from "../../spotify/api";
 import { Message } from "../messages";
 
@@ -7,7 +7,7 @@ const make = Effect.gen(function* () {
 	yield* Effect.logInfo(`Starting CurrentlyPlayingRequestSubscriber`);
 
 	const spotify = yield* SpotifyApiClient;
-	const pubsub = yield* PubSubService;
+	const pubsub = yield* PubSubClient;
 
 	const currentPlayingSubscriber = yield* pubsub.subscribeTo(
 		"CurrentlyPlayingRequest",
@@ -75,6 +75,6 @@ const make = Effect.gen(function* () {
 );
 
 export const CurrentlyPlayingRequestSubscriber = Layer.scopedDiscard(make).pipe(
-	Layer.provide(PubSubService.Live),
+	Layer.provide(PubSubClient.Live),
 	Layer.provide(SpotifyApiClient.Live),
 );

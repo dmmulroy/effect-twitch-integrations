@@ -1,7 +1,7 @@
 import { Layer, Effect } from "effect";
 import { TwitchApiClient } from "./api";
 import { TwitchEventSubSubscribers } from "./eventsub-subscribers/subscribers";
-import { PubSubService } from "../pubsub/client";
+import { PubSubClient } from "../pubsub/client";
 
 const make = Effect.gen(function* () {
 	yield* Effect.logInfo(`Starting TwitchService`);
@@ -14,5 +14,5 @@ const make = Effect.gen(function* () {
 export const TwitchService = Layer.scopedDiscard(make).pipe(
 	Layer.provide(TwitchEventSubSubscribers.Live),
 	Layer.provide(TwitchApiClient.Live),
-	Layer.provide(PubSubService.Live),
+	Layer.provide(PubSubClient.Live),
 );

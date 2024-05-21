@@ -1,5 +1,5 @@
 import { Effect, Layer, Queue, Array, pipe } from "effect";
-import { PubSubService } from "../client";
+import { PubSubClient } from "../client";
 import { TwitchApiClient } from "../../twitch/api";
 import { TwitchConfig } from "../../twitch/config";
 import type { Track } from "@spotify/web-api-ts-sdk";
@@ -9,7 +9,7 @@ const make = Effect.gen(function* () {
 
 	const api = yield* TwitchApiClient;
 	const config = yield* TwitchConfig;
-	const pubsub = yield* PubSubService;
+	const pubsub = yield* PubSubClient;
 
 	const subscriber = yield* pubsub.subscribeTo("SongQueue");
 
@@ -57,6 +57,6 @@ const make = Effect.gen(function* () {
 );
 
 export const SongQueueSubscriber = Layer.scopedDiscard(make).pipe(
-	Layer.provide(PubSubService.Live),
+	Layer.provide(PubSubClient.Live),
 	Layer.provide(TwitchApiClient.Live),
 );

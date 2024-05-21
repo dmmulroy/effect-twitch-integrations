@@ -1,9 +1,9 @@
 import { Effect, Layer, Queue } from "effect";
-import { PubSubService } from "../client";
+import { PubSubClient } from "../client";
 import { Message } from "../messages";
 
 const make = Effect.gen(function* () {
-	const pubsub = yield* PubSubService;
+	const pubsub = yield* PubSubClient;
 
 	const currentlyPlayingSubscriber =
 		yield* pubsub.subscribeTo("CurrentlyPlaying");
@@ -35,5 +35,5 @@ const make = Effect.gen(function* () {
 });
 
 export const CurrentlyPlayingSubscriber = Layer.scopedDiscard(make).pipe(
-	Layer.provide(PubSubService.Live),
+	Layer.provide(PubSubClient.Live),
 );

@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { PubSubService } from "../pubsub/client";
+import { PubSubClient } from "../pubsub/client";
 import { SpotifyApiClient } from "./api";
 
 const make = Effect.gen(function* () {
@@ -12,5 +12,5 @@ const make = Effect.gen(function* () {
 
 export const SpotifyService = Layer.scopedDiscard(make).pipe(
 	Layer.provide(SpotifyApiClient.Live),
-	Layer.provide(PubSubService.Live),
+	Layer.provide(PubSubClient.Live),
 );

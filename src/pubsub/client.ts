@@ -27,7 +27,7 @@ const make = Effect.gen(function* () {
 			),
 	);
 
-	return PubSubService.of({
+	return PubSubClient.of({
 		publish: (message) => PubSub.publish(pubsub, message),
 		unsafePublish: (message) => pubsub.unsafeOffer(message),
 		subscribe: () => PubSub.subscribe(pubsub),
@@ -61,10 +61,10 @@ const make = Effect.gen(function* () {
 				return queue;
 			}),
 	});
-}).pipe(Effect.annotateLogs({ module: "message-pubsub" }));
+}).pipe(Effect.annotateLogs({ module: "pubsub-client" }));
 
-export class PubSubService extends Context.Tag("message-pubsub")<
-	PubSubService,
+export class PubSubClient extends Context.Tag("pubsub-client")<
+	PubSubClient,
 	IPubSubService
 >() {
 	static Live = Layer.scoped(this, make);

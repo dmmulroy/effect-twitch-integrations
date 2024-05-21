@@ -15,6 +15,7 @@ export type Message = Data.TaggedEnum<{
 		rewardId: string;
 		url: string;
 	};
+	SongAddedToSpotifyQueue: { trackId: string; requesterDisplayName: string };
 	SongQueueRequest: {};
 	SongQueue: { queue: SpotifyQueue };
 	RefundRewardRequest: {
@@ -37,6 +38,9 @@ export type CurrentlyPlayingMessage = ExtractMessage<"CurrentlyPlaying">;
 
 export type SendTwitchChatMessage = ExtractMessage<"SendTwitchChat">;
 
+export type SongAddedToSpotifyQueueMessage =
+	ExtractMessage<"SongAddedToSpotifyQueue">;
+
 export type SongRequestMessage = ExtractMessage<"SongRequest">;
 
 export type SongQueueRequestMessage = ExtractMessage<"SongQueueRequest">;
@@ -49,6 +53,7 @@ export type MessageTypeToMessage = {
 	CurrentlyPlayingRequest: CurrentlyPlayingRequestMessage;
 	CurrentlyPlaying: CurrentlyPlayingMessage;
 	SendTwitchChat: SendTwitchChatMessage;
+	SongAddedToSpotifyQueue: SongAddedToSpotifyQueueMessage;
 	SongRequest: SongRequestMessage;
 	SongQueueRequest: SongQueueRequestMessage;
 	SongQueue: SongQueueMessage;

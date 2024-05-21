@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { PubSubService } from "../../pubsub/client";
+import { PubSubClient } from "../../pubsub/client";
 import { TwitchConfig } from "../config";
 import { TwitchEventSubClient } from "../eventsub";
 import { Message } from "../../pubsub/messages";
@@ -9,7 +9,7 @@ const make = Effect.gen(function* () {
 
 	const config = yield* TwitchConfig;
 	const eventsub = yield* TwitchEventSubClient;
-	const pubsub = yield* PubSubService;
+	const pubsub = yield* PubSubClient;
 
 	yield* Effect.acquireRelease(
 		Effect.sync(() =>
@@ -53,11 +53,11 @@ const make = Effect.gen(function* () {
 export const TwitchEventSubChannelChatMessageSubscriber = {
 	Live: Layer.scopedDiscard(make).pipe(
 		Layer.provide(TwitchEventSubClient.Live),
-		Layer.provide(PubSubService.Live),
+		Layer.provide(PubSubClient.Live),
 	),
 
 	Test: Layer.scopedDiscard(make).pipe(
 		Layer.provide(TwitchEventSubClient.Test),
-		Layer.provide(PubSubService.Live),
+		Layer.provide(PubSubClient.Live),
 	),
 } as const;
