@@ -4,6 +4,7 @@ import { SpotifyConfig } from "./spotify/config";
 import { Browser } from "./browser";
 import { BunRuntime } from "@effect/platform-bun";
 import { requestAccessToken } from "./spotify/api";
+import { AccessTokenHelpers } from "@spotify/web-api-ts-sdk";
 
 const BunTime = {
 	funTime: BunRuntime.runMain,
@@ -37,7 +38,7 @@ const getAccessToken = Effect.gen(function* () {
 	yield* Effect.promise(() =>
 		Bun.write(
 			"src/do_not_open_on_stream/access-token.json",
-			JSON.stringify(accessToken, null, 2),
+			JSON.stringify(AccessTokenHelpers.toCachable(accessToken), null, 2),
 		),
 	);
 }).pipe(Effect.provide(RedirectServer.Live));
