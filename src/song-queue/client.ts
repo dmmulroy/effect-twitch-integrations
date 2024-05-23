@@ -1,60 +1,84 @@
 import {
   Array,
   Context,
+  Data,
   Effect,
   Layer,
   Option,
   Queue,
   SynchronizedRef,
 } from "effect";
+import type { TrackItem } from "@spotify/web-api-ts-sdk";
+import { FileSystem } from "@effect/platform";
 import { PubSubClient } from "../pubsub/client";
 import type { SongAddedToSpotifyQueueMessage } from "../pubsub/messages";
 import { SpotifyApiClient, type ISpotifyApiClient } from "../spotify/api";
-import type { TrackItem } from "@spotify/web-api-ts-sdk";
 import type { SpotifyError } from "../spotify/error";
-
-// We need a way to:
-// - Associate a song request (possibly multiple) with a twitch user id
-// - We need to keep the requested songs up to date with the spotify player
-// such that once a song is played it is removed from the cache
-// - The cache should persist through restarts
+import { BunFileSystem } from "@effect/platform-bun";
 
 type QueueItem = Readonly<{
   track: TrackItem;
   requesterDisplayName: Option.Option<string>;
 }>;
 
-// Real SpotifyQueue = [1, 2, 3, 4]
-//
-// Internal Queue  [
-//   { trackId: 1, requesterDisplayName: Some("bunabax")},
-//   { trackId: 3, requesterDisplayName: Some("mekapilon")},
-//]
-//
-//End result of merging/syncing should be:
-// Internal queue [
-//   { trackId: 1, requesterDisplayName: Some("bunabax") },
-//   { trackId: 2, requesterDisplayName: None },
-//   { trackId: 3, requesterDisplayName: Some("mekapilon") },
-//   { trackId: 4, requesterDisplayName: None },
-// ]
-
 type ISongQueue = Readonly<{
-  getQueue: () => Effect.Effect<ReadonlyArray<QueueItem>, SpotifyError>;
+  getQueue: () => Effect.Effect<
+    ReadonlyArray<QueueItem>,
+    SpotifyError | PersistSongQueueError
+  >;
 }>;
 
-const make = Effect.gen(function* () {
+const make = Effect.gen(function* (_) {
   yield* Effect.logInfo(`Starting SongQueue`);
 
   const pubsub = yield* PubSubClient;
   const spotify = yield* SpotifyApiClient;
-  const queueRef = yield* SynchronizedRef.make<ReadonlyArray<QueueItem>>(
-    Array.empty(),
-  );
+  const fs = yield* FileSystem.FileSystem;
 
   const subscriber = yield* pubsub.subscribeTo("SongAddedToSpotifyQueue");
 
-  const internalSyncQueue = makeSyncQueue(spotify);
+  const queueRef = yield* Effect.acquireRelease(
+    Effect.gen(function* () {
+      const persistedQueue = yield* fs
+        .readFileString("src/song-queue/persistence.json")
+        .pipe(
+          Effect.andThen((json) =>
+            Effect.try({
+              try: (): ReadonlyArray<QueueItem> => JSON.parse(json),
+              catch: (): ReadonlyArray<QueueItem> => {
+                return [];
+              },
+            }),
+          ),
+        );
+
+      const queueRef =
+        yield* SynchronizedRef.make<ReadonlyArray<QueueItem>>(persistedQueue);
+
+      yield* Effect.logInfo("SongQueue started");
+
+      return queueRef;
+    }),
+    (queueRef) => {
+      return Effect.gen(function* () {
+        const queue = yield* SynchronizedRef.get(queueRef);
+
+        yield* fs
+          .writeFileString(
+            "src/song-queue/persistence.json",
+            JSON.stringify(queue, null, 2),
+          )
+          .pipe(
+            Effect.tapError(Effect.logError),
+            Effect.catchAll((_) => Effect.void),
+          );
+
+        yield* Effect.logInfo("SongQueue stopped");
+      });
+    },
+  );
+
+  const internalSyncQueue = makeSyncQueue(spotify, fs);
 
   const syncQueue = <A>(_: A) =>
     Effect.log("Synchronizing Spotify Queue").pipe(
@@ -82,10 +106,6 @@ const make = Effect.gen(function* () {
     ),
   );
 
-  yield* Effect.acquireRelease(Effect.logInfo(`SongQueue started`), () =>
-    Effect.logInfo(`SongQueue stopped`),
-  );
-
   return {
     getQueue: () => SynchronizedRef.get(queueRef).pipe(syncQueue),
   } as const satisfies ISongQueue;
@@ -98,6 +118,7 @@ export class SongQueueClient extends Context.Tag("song-queue-client")<
   static Live = Layer.scoped(this, make).pipe(
     Layer.provide(PubSubClient.Live),
     Layer.provide(SpotifyApiClient.Live),
+    Layer.provide(BunFileSystem.layer),
   );
 }
 
@@ -110,8 +131,8 @@ function messageToQueueItem(
   };
 }
 
-function makeSyncQueue(spotify: ISpotifyApiClient) {
-  return function (queue: ReadonlyArray<QueueItem>) {
+function makeSyncQueue(spotify: ISpotifyApiClient, fs: FileSystem.FileSystem) {
+  return function (internalQueue: ReadonlyArray<QueueItem>) {
     return Effect.gen(function* (_) {
       const result = yield* spotify.use((client) =>
         client.player.getUsersQueue(),
@@ -120,14 +141,25 @@ function makeSyncQueue(spotify: ISpotifyApiClient) {
       const spotifyQueue = [result.currently_playing, ...result.queue];
 
       const [updatedInternalQueue] = spotifyQueue.reduce(
-        makeQueueReducer(queue),
+        makeQueueReducer(internalQueue),
         [[], []],
       );
+
+      yield* fs
+        .writeFileString(
+          "src/song-queue/persistence.json",
+          JSON.stringify(updatedInternalQueue, null, 2),
+        )
+        .pipe(Effect.mapError((cause) => new PersistSongQueueError({ cause })));
 
       return updatedInternalQueue;
     });
   };
 }
+
+class PersistSongQueueError extends Data.TaggedError("PersistSongQueueError")<{
+  cause: unknown;
+}> {}
 
 type Accumulator = [
   /** updated queue */

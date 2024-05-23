@@ -2,6 +2,7 @@ import { Effect, Layer, Queue, Option, Array, pipe } from "effect";
 import { PubSubClient } from "../client";
 import { TwitchApiClient } from "../../twitch/api";
 import { TwitchConfig } from "../../twitch/config";
+import type { Track } from "@spotify/web-api-ts-sdk";
 
 const make = Effect.gen(function* () {
   yield* Effect.logInfo("Starting SongQueueSubscriber");
@@ -17,7 +18,7 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         const { queue } = yield* Queue.take(subscriber);
 
-        const nextThreeSongs = pipe(
+        const chatMessage = pipe(
           queue,
           Array.filterMap((item) => {
             if ("album" in item.track) {
@@ -25,20 +26,10 @@ const make = Effect.gen(function* () {
             }
             return Option.none();
           }),
-          Array.take(3),
+          Array.take(4),
+          Array.map(formatMessage),
+          Array.join(" | "),
         );
-
-        // Start here on Thursday: Fix this so the first item is Currently playing
-        const chatMessage = `Song queue: ${nextThreeSongs
-          .map(
-            (item, idx) =>
-              `${idx + 1}: ${item.track.name} by ${item.track.artists
-                .map((artist) => artist.name)
-                .join(
-                  ", ",
-                )}${Option.map(item.requesterDisplayName, (name) => ` requested by @${name}`).pipe(Option.getOrElse(() => ""))}`,
-          )
-          .join(" | ")}`;
 
         yield* api
           .use((client) =>
@@ -62,3 +53,20 @@ export const SongQueueSubscriber = Layer.scopedDiscard(make).pipe(
   Layer.provide(PubSubClient.Live),
   Layer.provide(TwitchApiClient.Live),
 );
+
+function formatMessage(
+  item: Readonly<{
+    track: Track;
+    requesterDisplayName: Option.Option<string>;
+  }>,
+  idx: number,
+) {
+  const prefix = idx === 0 ? `Currently playing` : `${idx}`;
+  const artists = item.track.artists.map((artist) => artist.name).join(", ");
+  const requestedBy = Option.map(
+    item.requesterDisplayName,
+    (name) => ` requested by @${name}`,
+  ).pipe(Option.getOrElse(() => ""));
+
+  return `${prefix}: ${item.track.name} by ${artists}${requestedBy}`;
+}
