@@ -112,9 +112,6 @@ export function requestAccessToken(code: string) {
 
 function encodeFormData(data: object) {
   return Object.keys(data)
-    .map(
-      // @ts-expect-error
-      (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]),
-    )
+    .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]))
     .join("&");
 }

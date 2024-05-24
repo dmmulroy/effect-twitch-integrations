@@ -1,10 +1,18 @@
-import { HttpServer } from "@effect/platform";
-import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
+import { FileSystem, HttpServer } from "@effect/platform";
+import { BunHttpServer } from "@effect/platform-bun";
 import { Context, Effect, Layer } from "effect";
 import { SongQueueClient } from "../song-queue/client";
 
 const router = HttpServer.router.empty.pipe(
   HttpServer.router.get("/ping", HttpServer.response.text("pong")),
+  HttpServer.router.get(
+    "/song-queue-component",
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const html = yield* fs.readFileString("src/overlays/song-queue.html");
+      return yield* HttpServer.response.html(html);
+    }),
+  ),
   HttpServer.router.get(
     "/song-queue",
     Effect.gen(function* () {

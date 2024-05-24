@@ -1,6 +1,5 @@
 import { Effect, Layer, Queue } from "effect";
 import { PubSubClient } from "../client";
-import { SpotifyApiClient } from "../../spotify/api";
 import { Message } from "../messages";
 import { SongQueueClient } from "../../song-queue/client";
 

@@ -16,7 +16,7 @@ import { SpotifyApiClient, type ISpotifyApiClient } from "../spotify/api";
 import type { SpotifyError } from "../spotify/error";
 import { BunFileSystem } from "@effect/platform-bun";
 
-type QueueItem = Readonly<{
+export type QueueItem = Readonly<{
   track: TrackItem;
   requesterDisplayName: Option.Option<string>;
 }>;

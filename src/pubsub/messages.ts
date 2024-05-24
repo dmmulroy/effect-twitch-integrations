@@ -1,5 +1,6 @@
 import type { TrackItem } from "@spotify/web-api-ts-sdk";
-import { Data, Option, Types } from "effect";
+import { Data, Types } from "effect";
+import type { QueueItem } from "../song-queue/client";
 
 export type Message = Data.TaggedEnum<{
   CurrentlyPlaying: {
@@ -8,6 +9,7 @@ export type Message = Data.TaggedEnum<{
     requesterDisplayName: string;
   };
   CurrentlyPlayingRequest: { requesterDisplayName: string };
+  KeyboardRaffleRequest: { requesterDisplayName: string };
   SendTwitchChat: { message: string };
   SongRequest: {
     eventId: string;
@@ -18,10 +20,7 @@ export type Message = Data.TaggedEnum<{
   SongAddedToSpotifyQueue: { track: TrackItem; requesterDisplayName: string };
   SongQueueRequest: {};
   SongQueue: {
-    queue: ReadonlyArray<{
-      track: TrackItem;
-      requesterDisplayName: Option.Option<string>;
-    }>;
+    queue: ReadonlyArray<QueueItem>;
   };
   RefundRewardRequest: {
     eventId: string;
@@ -41,6 +40,9 @@ export type CurrentlyPlayingRequestMessage =
 
 export type CurrentlyPlayingMessage = ExtractMessage<"CurrentlyPlaying">;
 
+export type KeyboardRaffleRequestMessage =
+  ExtractMessage<"KeyboardRaffleRequest">;
+
 export type SendTwitchChatMessage = ExtractMessage<"SendTwitchChat">;
 
 export type SongAddedToSpotifyQueueMessage =
@@ -57,6 +59,7 @@ export type RefundRewardRequestMessage = ExtractMessage<"RefundRewardRequest">;
 export type MessageTypeToMessage = {
   CurrentlyPlayingRequest: CurrentlyPlayingRequestMessage;
   CurrentlyPlaying: CurrentlyPlayingMessage;
+  KeyboardRaffleRequest: KeyboardRaffleRequestMessage;
   SendTwitchChat: SendTwitchChatMessage;
   SongAddedToSpotifyQueue: SongAddedToSpotifyQueueMessage;
   SongRequest: SongRequestMessage;
