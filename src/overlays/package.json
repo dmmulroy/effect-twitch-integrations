@@ -26,6 +26,8 @@
   },
   "type": "module",
   "trustedDependencies": [
+    "@sveltejs/kit",
+    "esbuild",
     "svelte-preprocess"
   ],
   "dependencies": {

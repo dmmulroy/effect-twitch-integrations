@@ -15,15 +15,12 @@
   "dependencies": {
     "@effect/platform": "^0.53.4",
     "@effect/platform-bun": "^0.34.3",
-    "@spotify/web-api-ts-sdk": "link:@spotify/web-api-ts-sdk",
     "@twurple/api": "^7.1.0",
     "@twurple/auth": "^7.1.0",
     "@twurple/chat": "^7.1.0",
     "@twurple/eventsub-ws": "^7.1.0",
     "@twurple/pubsub": "^7.1.0",
-    "@types/jsonwebtoken": "^9.0.6",
-    "effect": "^3.0.3",
-    "jsonwebtoken": "^9.0.2"
+    "effect": "^3.0.3"
   },
   "devDependencies": {
     "bun-types": "^1.1.6"
