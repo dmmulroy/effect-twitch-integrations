@@ -20,8 +20,18 @@ const make = Effect.gen(function* () {
     Effect.forever(
       Effect.gen(function* (_) {
         const message = yield* Queue.take(songRequestSubscriber);
-
         const handleError = makeErrorHandler(message, pubsub);
+
+        // Online check
+        yield* twitch
+          .use((api) =>
+            api.streams.getStreamByUserId(twitchConfig.broadcasterId),
+          )
+          .pipe(
+            Effect.andThen(Effect.fromNullable),
+            Effect.andThen(Boolean),
+            handleError,
+          );
 
         const songId = yield* getSongIdFromUrl(message.url).pipe(handleError);
 
