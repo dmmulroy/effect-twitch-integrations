@@ -69,7 +69,7 @@
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
-    class="text-[#f5bde6] min-h-12 min-w-12 ml-auto"
+    class="text-[#f5bde6] w-14 ml-auto"
   >
     <path d="M9 18V5l12-2v13"></path>
     <circle cx="6" cy="18" r="3"></circle>
