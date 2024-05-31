@@ -14,8 +14,8 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         const { requesterDisplayName } = yield* Queue.take(subscriber);
 
-        const winningNumber = yield* Random.nextIntBetween(1, 6_500);
-        const rolledNumber = yield* Random.nextIntBetween(1, 6_500);
+        const winningNumber = yield* Random.nextIntBetween(1, 10_000);
+        const rolledNumber = yield* Random.nextIntBetween(1, 10_000);
 
         if (winningNumber === rolledNumber) {
           const message = `@${requesterDisplayName} won 🎉 The winning number was ${winningNumber} and they rolled it!`;
