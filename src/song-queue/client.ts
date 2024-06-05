@@ -6,6 +6,7 @@ import {
   Layer,
   Option,
   Queue,
+  Schedule,
   SynchronizedRef,
 } from "effect";
 import type { TrackItem } from "@spotify/web-api-ts-sdk";
@@ -104,6 +105,10 @@ const make = Effect.gen(function* (_) {
         Effect.tap(syncQueue),
       ),
     ),
+  );
+
+  yield* Effect.forkScoped(
+    Effect.repeat(syncQueue(undefined), Schedule.fixed("5 seconds")),
   );
 
   return {
