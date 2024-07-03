@@ -17,6 +17,8 @@ export type Message = Data.TaggedEnum<{
     rewardId: string;
     url: string;
   };
+  StartNixTimer: {};
+  StopNixTimer: {};
   SongAddedToSpotifyQueue: { track: TrackItem; requesterDisplayName: string };
   SongQueueRequest: {};
   SongQueue: {
@@ -56,6 +58,9 @@ export type SongQueueMessage = ExtractMessage<"SongQueue">;
 
 export type RefundRewardRequestMessage = ExtractMessage<"RefundRewardRequest">;
 
+export type StartNixTimerMessage = ExtractMessage<"StartNixTimer">;
+export type StopNixTimerMessage = ExtractMessage<"StopNixTimer">;
+
 export type MessageTypeToMessage = {
   CurrentlyPlayingRequest: CurrentlyPlayingRequestMessage;
   CurrentlyPlaying: CurrentlyPlayingMessage;
@@ -66,4 +71,6 @@ export type MessageTypeToMessage = {
   SongQueueRequest: SongQueueRequestMessage;
   SongQueue: SongQueueMessage;
   RefundRewardRequest: RefundRewardRequestMessage;
+  StartNixTimer: StartNixTimerMessage;
+  StopNixTimer: StopNixTimerMessage;
 };

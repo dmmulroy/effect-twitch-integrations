@@ -1,3 +1,2 @@
 # effect-twitch-integrations
-foobar
 
