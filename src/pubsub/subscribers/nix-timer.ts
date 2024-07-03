@@ -90,8 +90,12 @@ const make = Effect.gen(function* () {
               );
             }),
           ),
-        );
-      }).pipe(Effect.catchAll(() => Effect.void)),
+          Match.exhaustive,
+        )(message);
+      }).pipe(
+        Effect.forever,
+        Effect.catchAll(() => Effect.void),
+      ),
     ),
   );
 
