@@ -6,11 +6,9 @@
     "start": "bun run src/main.ts",
     "get-spotify-access-token": "bun run src/get-spotify-access-token.ts"
   },
-  "devdependencies": {
-    "@types/bun": "latest"
-  },
-  "peerdependencies": {
-    "typescript": "^5.0.0"
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.5.2"
   },
   "dependencies": {
     "@effect/platform": "^0.53.4",
@@ -21,8 +19,5 @@
     "@twurple/eventsub-ws": "^7.1.0",
     "@twurple/pubsub": "^7.1.0",
     "effect": "^3.0.3"
-  },
-  "devDependencies": {
-    "bun-types": "^1.1.6"
   }
 }

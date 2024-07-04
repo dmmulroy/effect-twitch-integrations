@@ -82,20 +82,11 @@ function createMatchCommand(pubsub: IPubSubService) {
       ),
       Match.when(
         {
-          message: "!nix-timer-start",
+          message: "!nix",
           requesterDisplayName: "dmmulroy",
         },
         () => {
-          pubsub.unsafePublish(Message.StartNixTimer());
-        },
-      ),
-      Match.when(
-        {
-          message: "!nix-timer-stop",
-          requesterDisplayName: "dmmulroy",
-        },
-        () => {
-          pubsub.unsafePublish(Message.StopNixTimer());
+          pubsub.unsafePublish(Message.ToggleNixTimer());
         },
       ),
     );

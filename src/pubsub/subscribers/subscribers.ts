@@ -7,7 +7,7 @@ import { SendTwitchShatSubscriber } from "./send-twitch-shat";
 import { SongQueueSubscriber } from "./song-queue";
 import { RefundRewardSubscriber } from "./refund-reward";
 import { KeyboardRaffleSubscriber } from "./keyboard-raffle";
-import { NixTimerSubscriber } from "./nix-timer";
+import { NixTimerSubscriber } from "./toggle-nix-timer";
 
 const make = Effect.gen(function* () {
   yield* Effect.logInfo("Starting PubSubSubscribers");

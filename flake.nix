@@ -14,7 +14,7 @@
       {
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = with pkgs; [bun];
+            buildInputs = with pkgs; [bun flyctl];
           };
         };
       };
