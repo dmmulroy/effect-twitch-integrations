@@ -11,7 +11,7 @@ export type Data = {
 
 export const load: PageServerLoad = async ({ fetch, depends }) => {
   const { data }: Data = await fetch(
-    'https://twitch-integrations.fly.dev/song-queue',
+    'https://twitch-integrations.fly.dev/nix-timer',
   ).then((res) => res.json());
 
   depends('nix-timer');
