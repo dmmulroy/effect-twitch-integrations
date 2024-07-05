@@ -41,7 +41,7 @@
       Time spent configuring Nix
     </h1>
     <span class='text-2xl font-bold'>{totalTime}</span>
-    <span class='text-sm text-gray-600'>
+    <span class='text-sm text-gray-300'>
       {#if isRunning}
         Running timer: <span class="font-semibold">{duration}</span>
       {:else}
@@ -60,7 +60,7 @@
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
-    class="h-8 w-8 text-pink-400"
+    class="h-10 w-10"
   >
     <line x1="2" x2="22" y1="12" y2="12"></line>
     <line x1="12" x2="12" y1="2" y2="22"></line>
