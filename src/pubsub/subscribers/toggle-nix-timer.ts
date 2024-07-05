@@ -1,30 +1,27 @@
-import { Effect, Layer, Queue, SynchronizedRef } from "effect";
+import { Effect, Layer, Queue } from "effect";
 import { PubSubClient } from "../client";
 import { Message } from "../messages";
+import { NixTimerClient } from "../../nix-timer/client";
 
 const make = Effect.gen(function* () {
   yield* Effect.logInfo(`Starting NixTimerSubscriber`);
 
   const pubsub = yield* PubSubClient;
+  const timer = yield* NixTimerClient;
 
   const ToggleNixTimerSubscriber = yield* pubsub.subscribeTo("ToggleNixTimer");
-
-  const startTimeRef = yield* SynchronizedRef.make<undefined | number>(
-    undefined,
-  );
 
   yield* Effect.forkScoped(
     Effect.forever(
       Effect.gen(function* () {
         yield* Queue.take(ToggleNixTimerSubscriber);
-        const startTime = yield* SynchronizedRef.get(startTimeRef);
 
-        if (startTime !== undefined) {
+        if (timer.isRunning()) {
           const now = Date.now();
-
+          const startTime = (yield* timer.getCurrentTimerStartTime()) ?? 0;
           const elapsedTime = now - startTime;
 
-          yield* SynchronizedRef.set(startTimeRef, undefined);
+          yield* timer.stop();
 
           yield* pubsub.publish(
             Message.SendTwitchChat({
@@ -41,8 +38,7 @@ const make = Effect.gen(function* () {
           return yield* Effect.void;
         }
 
-        const now = Date.now();
-        yield* SynchronizedRef.set(startTimeRef, now);
+        yield* timer.start();
 
         yield* pubsub.publish(
           Message.SendTwitchChat({
@@ -60,7 +56,6 @@ const make = Effect.gen(function* () {
     Effect.logInfo(`NixTimerSubscriber started`),
     () =>
       Effect.gen(function* () {
-        yield* SynchronizedRef.set(startTimeRef, undefined);
         yield* Effect.logInfo(`NixTimerSubscriber stopped`);
       }),
   );

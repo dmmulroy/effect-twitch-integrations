@@ -29,6 +29,8 @@ const make = Effect.gen(function* () {
             return pubsub.unsafePublish(
               Message.KeyboardRaffleRequest({
                 requesterDisplayName: event.userDisplayName,
+                eventId: event.id,
+                rewardId: event.rewardId,
               }),
             );
           }

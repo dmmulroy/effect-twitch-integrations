@@ -1,18 +1,22 @@
-import { Effect, Layer, Queue, Random } from "effect";
+import { Effect, Layer, Queue, Random, Schedule } from "effect";
 import { PubSubClient } from "../client";
 import { Message } from "../messages";
+import { TwitchApiClient } from "../../twitch/api";
+import { TwitchConfig } from "../../twitch/config";
 
 const make = Effect.gen(function* () {
   yield* Effect.logInfo("Starting KeyboardRaffleSubscriber");
 
   const pubsub = yield* PubSubClient;
-
+  const twitch = yield* TwitchApiClient;
+  const twitchConfig = yield* TwitchConfig;
   const subscriber = yield* pubsub.subscribeTo("KeyboardRaffleRequest");
 
   yield* Effect.forkScoped(
     Effect.forever(
       Effect.gen(function* () {
-        const { requesterDisplayName } = yield* Queue.take(subscriber);
+        const { requesterDisplayName, eventId, rewardId } =
+          yield* Queue.take(subscriber);
 
         const winningNumber = yield* Random.nextIntBetween(1, 10_000);
         const rolledNumber = yield* Random.nextIntBetween(1, 10_000);
@@ -27,6 +31,23 @@ const make = Effect.gen(function* () {
         const message = `@${requesterDisplayName} lost 😭 The winning number was ${winningNumber} and they rolled ${rolledNumber}`;
         yield* Effect.logInfo(message);
         yield* pubsub.publish(Message.SendTwitchChat({ message }));
+
+        yield* twitch
+          .use((client) =>
+            client.channelPoints.updateRedemptionStatusByIds(
+              twitchConfig.broadcasterId,
+              rewardId,
+              [eventId],
+              "FULFILLED",
+            ),
+          )
+          .pipe(
+            Effect.retry({
+              times: 3,
+              schedule: Schedule.fixed("250 millis"),
+            }),
+          )
+          .pipe(Effect.tapError(Effect.logError));
       }).pipe(Effect.catchAll(() => Effect.void)),
     ),
   ).pipe(
@@ -44,4 +65,5 @@ const make = Effect.gen(function* () {
 
 export const KeyboardRaffleSubscriber = Layer.scopedDiscard(make).pipe(
   Layer.provide(PubSubClient.Live),
+  Layer.provide(TwitchApiClient.Live),
 );

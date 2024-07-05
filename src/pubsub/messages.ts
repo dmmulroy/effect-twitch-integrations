@@ -9,7 +9,11 @@ export type Message = Data.TaggedEnum<{
     requesterDisplayName: string;
   };
   CurrentlyPlayingRequest: { requesterDisplayName: string };
-  KeyboardRaffleRequest: { requesterDisplayName: string };
+  KeyboardRaffleRequest: {
+    requesterDisplayName: string;
+    eventId: string;
+    rewardId: string;
+  };
   SendTwitchChat: { message: string };
   SongRequest: {
     eventId: string;

@@ -1,16 +1,21 @@
-import { FileSystem, HttpServer } from "@effect/platform";
+import { HttpServer } from "@effect/platform";
 import { BunHttpServer } from "@effect/platform-bun";
-import { Context, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { SongQueueClient } from "../song-queue/client";
+import { NixTimerClient } from "../nix-timer/client";
 
 const router = HttpServer.router.empty.pipe(
   HttpServer.router.get("/ping", HttpServer.response.text("pong")),
   HttpServer.router.get(
-    "/song-queue-component",
+    "/nix-timer",
     Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const html = yield* fs.readFileString("src/overlays/song-queue.html");
-      return yield* HttpServer.response.html(html);
+      const timer = yield* NixTimerClient;
+      const currentStartTime = yield* timer.getCurrentTimerStartTime();
+      const totalTime = yield* timer.getTotalTime();
+      return yield* HttpServer.response.json(
+        { data: { currentStartTime, totalTime } },
+        { status: 200 },
+      );
     }),
   ),
   HttpServer.router.get(

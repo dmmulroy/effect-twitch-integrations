@@ -1,12 +1,13 @@
-import { Data, Effect, SynchronizedRef } from "effect";
+import { Context, Data, Effect, Layer, SynchronizedRef } from "effect";
 import { FileSystem } from "@effect/platform";
+import { BunFileSystem } from "@effect/platform-bun";
 
 export type NixTimerState = {
   currentTimerStartTime: number | undefined;
   totalTime: number;
 };
 
-export type NixTimer = Readonly<{
+export type INixTimer = Readonly<{
   isRunning: () => Effect.Effect<boolean>;
   start: () => Effect.Effect<void, TimerAlreadyRunningError>;
   stop: () => Effect.Effect<void, TimerNotRunningError>;
@@ -20,13 +21,13 @@ class TimerAlreadyRunningError extends Data.TaggedError(
 
 class TimerNotRunningError extends Data.TaggedError("TimerNotRunningError") {}
 
-const make = Effect.gen(function* () {
+const make = Effect.gen(function* (_) {
   yield* Effect.logInfo(`Starting NixTimer`);
 
   const fs = yield* FileSystem.FileSystem;
 
   const stateRef = yield* Effect.acquireRelease(
-    Effect.gen(function* () {
+    Effect.gen(function* (_) {
       const persistedQueue = yield* fs
         .readFileString("src/nix-timer/persistence.json")
         .pipe(
@@ -91,7 +92,7 @@ const make = Effect.gen(function* () {
     });
 
   const start = () =>
-    yield* SynchronizedRef.updateEffect(stateRef, (state) => {
+    SynchronizedRef.updateEffect(stateRef, (state) => {
       const isRunning = state.currentTimerStartTime !== undefined;
       if (isRunning) {
         return Effect.fail(new TimerAlreadyRunningError());
@@ -103,7 +104,7 @@ const make = Effect.gen(function* () {
     });
 
   const stop = () =>
-    yield* SynchronizedRef.updateEffect(stateRef, (state) => {
+    SynchronizedRef.updateEffect(stateRef, (state) => {
       if (state.currentTimerStartTime === undefined) {
         return Effect.fail(new TimerNotRunningError());
       }
@@ -122,22 +123,14 @@ const make = Effect.gen(function* () {
     getCurrentTimerStartTime,
     start,
     stop,
-  } as const satisfies NixTimer;
+  } as const satisfies INixTimer;
 });
 
-//{ const state = yield* SynchronizedRef.get(stateRef);
-//
-//      const isRunning = state.currentTimerStartTime !== undefined;
-//
-//      if (isRunning) {
-//        return yield* new TimerAlreadyRunningError()
-//      }
-//
-//
-//      state.currentTimerStartTime = Date.now()
-//
-//      yield* SynchronizedRef.set(stateRef, state)
-//    }
-
-//const start = () =>
-//  );
+export class NixTimerClient extends Context.Tag("nix-timer-client")<
+  NixTimerClient,
+  INixTimer
+>() {
+  static Live = Layer.scoped(this, make).pipe(
+    Layer.provide(BunFileSystem.layer),
+  );
+}
