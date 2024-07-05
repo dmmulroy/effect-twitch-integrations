@@ -39,15 +39,15 @@
   <div class="flex flex-col">
     <h1>
       Time spent configuring Nix
-      <span>{totalTime}</span>
-      <span>
-        {#if isRunning}
-          Running timer: {duration}
-        {:else}
-          bar
-        {/if}
-      </span>
     </h1>
+    <span>{totalTime}</span>
+    <span>
+      {#if isRunning}
+        Running timer: {duration}
+      {:else}
+        The timer is not currently running
+      {/if}
+    </span>
   </div>
   <svg
     xmlns="http://www.w3.org/2000/svg"

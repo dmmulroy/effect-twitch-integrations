@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ fetch, depends }) => {
   depends('nix-timer');
 
   return {
-    currentTimerStartTime: data.currentTimerStartTime,
+    currentTimerStartTime: data.currentTimerStartTime ?? undefined,
     totalTime: data.totalTime,
   };
 };
