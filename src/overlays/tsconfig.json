@@ -11,9 +11,7 @@
     "strict": true,
     "moduleResolution": "bundler",
     "paths": {
-      "@spotify/web-api-ts-sdk": [
-        "../../vendor/spotify-web-api-ts-sdk/"
-      ]
+      "@spotify/web-api-ts-sdk": ["../../vendor/spotify-web-api-ts-sdk/"]
     }
   }
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias

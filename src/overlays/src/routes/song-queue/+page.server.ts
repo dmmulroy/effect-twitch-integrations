@@ -1,6 +1,6 @@
-import type { PageServerLoad } from "./$types";
-import type { Track } from "@spotify/web-api-ts-sdk";
-import { Option } from "effect";
+import type { PageServerLoad } from './$types';
+import type { Track } from '@spotify/web-api-ts-sdk';
+import { Option } from 'effect';
 
 export type QueueItem = Readonly<{
   track: Track;
@@ -13,13 +13,13 @@ export type Data = {
 
 export const load: PageServerLoad = async ({ fetch, depends }) => {
   const { data }: Data = await fetch(
-    "https://twitch-integrations.fly.dev/song-queue",
+    'https://twitch-integrations.fly.dev/song-queue',
   ).then((res) => res.json());
 
   const currentlyPlaying = data.at(0);
   const nextUp = data.at(1);
 
-  depends("song-queue");
+  depends('song-queue');
 
   return {
     currentlyPlaying,
