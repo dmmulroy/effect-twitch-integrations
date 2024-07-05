@@ -34,13 +34,13 @@
 </script>
 
 <div
-  class="mx-auto mt-5 flex gap-4 h-[120px] w-80 flex-row items-center rounded-md bg-[#24273a] p-2 text-[#cad3f5] shadow-lg"
+  class="mx-auto mt-5 flex gap-4 justify-between h-[120px] w-80 flex-row items-center rounded-md bg-[#24273a] p-2 text-[#cad3f5] shadow-lg"
 >
   <div class="flex flex-col gap-2">
     <h1>
       Time spent configuring Nix
     </h1>
-    <span class='text-4xl font-bold'>{totalTime}</span>
+    <span class='text-2xl font-bold'>{totalTime}</span>
     <span class='text-sm text-gray-600'>
       {#if isRunning}
         Running timer: <span class="font-semibold">{duration}</span>
