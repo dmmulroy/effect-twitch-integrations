@@ -56,7 +56,7 @@
     viewBox="0 0 24 24"
     color="#67E8F9"
     fill="none"
-    stroke="currentColor"
+    stroke="#67E8F9"
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
