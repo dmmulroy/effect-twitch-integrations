@@ -59,7 +59,7 @@
 </script>
 
 <div
-  class="mx-auto mt-5 flex h-[120px] w-80 flex-row items-center justify-between gap-4 rounded-md bg-[#24273a] p-4 text-[#cad3f5] shadow-lg"
+  class="mx-auto mt-5 flex h-[120px] w-96 flex-row items-center justify-between gap-4 rounded-md bg-[#24273a] p-4 text-[#cad3f5] shadow-lg"
 >
   <div class="flex flex-col gap-2">
     <h1>Time spent configuring Nix</h1>
