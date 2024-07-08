@@ -7,6 +7,8 @@
 
   const { totalTime, currentTimerStartTime } = data;
 
+  $effect(() => console.log({totalTime, currentTimerStartTime }))
+
   let isRunning = $derived(currentTimerStartTime !== undefined);
   let duration = $state(
     formatDuration({ seconds: (currentTimerStartTime ?? 0) / 1000 }),

@@ -119,6 +119,7 @@ const make = Effect.gen(function* () {
         const elapsedTime = now - state.currentTimerStartTime;
 
         state.totalTime += elapsedTime;
+        state.currentTimerStartTime = undefined;
 
         return state;
       });
