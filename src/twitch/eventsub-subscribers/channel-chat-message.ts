@@ -86,7 +86,6 @@ function createMatchCommand(pubsub: IPubSubService) {
           requesterDisplayName: "dmmulroy",
         },
         () => {
-          console.log("here");
           pubsub.unsafePublish(Message.ToggleNixTimer());
         },
       ),

@@ -15,13 +15,16 @@ const make = Effect.gen(function* () {
     Effect.forever(
       Effect.gen(function* () {
         yield* Queue.take(ToggleNixTimerSubscriber);
+        yield* Effect.log("received toggle timer message");
 
-        if (timer.isRunning()) {
+        if (yield* timer.isRunning()) {
           const now = Date.now();
           const startTime = (yield* timer.getCurrentTimerStartTime()) ?? 0;
           const elapsedTime = now - startTime;
 
           yield* timer.stop();
+
+          yield* Effect.log("timer stopped");
 
           yield* pubsub.publish(
             Message.SendTwitchChat({
@@ -39,6 +42,7 @@ const make = Effect.gen(function* () {
         }
 
         yield* timer.start();
+        yield* Effect.log("timer started");
 
         yield* pubsub.publish(
           Message.SendTwitchChat({

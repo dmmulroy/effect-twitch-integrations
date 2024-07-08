@@ -12,6 +12,7 @@ const router = HttpServer.router.empty.pipe(
       const timer = yield* NixTimerClient;
       const currentStartTime = yield* timer.getCurrentTimerStartTime();
       const totalTime = yield* timer.getTotalTime();
+      yield* Effect.log({ currentStartTime, totalTime });
       return yield* HttpServer.response.json(
         { data: { currentStartTime, totalTime } },
         { status: 200 },

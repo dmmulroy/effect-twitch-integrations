@@ -21,13 +21,13 @@ class TimerAlreadyRunningError extends Data.TaggedError(
 
 class TimerNotRunningError extends Data.TaggedError("TimerNotRunningError") {}
 
-const make = Effect.gen(function* (_) {
+const make = Effect.gen(function* () {
   yield* Effect.logInfo(`Starting NixTimer`);
 
   const fs = yield* FileSystem.FileSystem;
 
   const stateRef = yield* Effect.acquireRelease(
-    Effect.gen(function* (_) {
+    Effect.gen(function* () {
       const persistedQueue = yield* fs
         .readFileString("src/nix-timer/persistence.json")
         .pipe(
@@ -53,12 +53,12 @@ const make = Effect.gen(function* (_) {
     }),
     (stateRef) => {
       return Effect.gen(function* () {
-        const queue = yield* SynchronizedRef.get(stateRef);
+        const state = yield* SynchronizedRef.get(stateRef);
 
         yield* fs
           .writeFileString(
             "src/nix-timer/persistence.json",
-            JSON.stringify(queue, null, 2),
+            JSON.stringify(state, null, 2),
           )
           .pipe(
             Effect.tapError(Effect.logError),
@@ -93,28 +93,35 @@ const make = Effect.gen(function* (_) {
 
   const start = () =>
     SynchronizedRef.updateEffect(stateRef, (state) => {
-      const isRunning = state.currentTimerStartTime !== undefined;
-      if (isRunning) {
-        return Effect.fail(new TimerAlreadyRunningError());
-      }
+      return Effect.gen(function* () {
+        yield* Effect.log("Starting NixTimer");
+        const isRunning = state.currentTimerStartTime !== undefined;
 
-      state.currentTimerStartTime = Date.now();
+        if (isRunning) {
+          return yield* new TimerAlreadyRunningError();
+        }
 
-      return Effect.succeed(state);
+        state.currentTimerStartTime = Date.now();
+
+        return state;
+      });
     });
 
   const stop = () =>
     SynchronizedRef.updateEffect(stateRef, (state) => {
-      if (state.currentTimerStartTime === undefined) {
-        return Effect.fail(new TimerNotRunningError());
-      }
+      return Effect.gen(function* () {
+        yield* Effect.log("Stopping NixTimer");
+        if (state.currentTimerStartTime === undefined) {
+          return yield* new TimerNotRunningError();
+        }
 
-      const now = Date.now();
-      const elapsedTime = now - state.currentTimerStartTime;
+        const now = Date.now();
+        const elapsedTime = now - state.currentTimerStartTime;
 
-      state.totalTime += elapsedTime;
+        state.totalTime += elapsedTime;
 
-      return Effect.succeed(state);
+        return state;
+      });
     });
 
   return {
