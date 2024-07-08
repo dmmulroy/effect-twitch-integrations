@@ -1,18 +1,24 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invalidate } from '$app/navigation';
-  import { formatDistanceToNow, formatDuration } from 'date-fns';
+  import { intervalToDuration, formatDuration } from 'date-fns';
 
   let { data } = $props();
 
   const { totalTime, currentStartTime } = data;
 
-  $effect(() => console.log({totalTime, currentStartTime }))
+  $effect(() => console.log({ totalTime, currentStartTime }));
 
   let isRunning = $derived(currentStartTime !== undefined);
 
   let duration = $state(
-    currentStartTime ? formatDistanceToNow(new Date(currentStartTime), { includeSeconds: true }) : undefined);
+    currentStartTime
+      ? formatDuration(
+          intervalToDuration({ start: 0, end: currentStartTime }),
+          { zero: true, delimiter: ':' },
+        )
+      : undefined,
+  );
 
   onMount(() => {
     const revalidateInterval = setInterval(() => {
@@ -22,7 +28,12 @@
     const updateDuration = setInterval(() => {
       if (isRunning) {
         console.log('duration: ', duration);
-        duration = currentStartTime ? formatDistanceToNow(new Date(currentStartTime), { includeSeconds: true }) : undefined;
+        duration = currentStartTime
+          ? formatDuration(
+              intervalToDuration({ start: 0, end: currentStartTime }),
+              { zero: true, delimiter: ':' },
+            )
+          : undefined;
       }
     }, 1000);
 
@@ -34,14 +45,12 @@
 </script>
 
 <div
-  class="mx-auto mt-5 flex gap-4 justify-between h-[120px] w-80 flex-row items-center rounded-md bg-[#24273a] p-2 text-[#cad3f5] shadow-lg"
+  class="mx-auto mt-5 flex h-[120px] w-80 flex-row items-center justify-between gap-4 rounded-md bg-[#24273a] p-2 text-[#cad3f5] shadow-lg"
 >
   <div class="flex flex-col gap-2">
-    <h1>
-      Time spent configuring Nix
-    </h1>
-    <span class='text-2xl font-bold'>{totalTime}</span>
-    <span class='text-sm text-gray-300'>
+    <h1>Time spent configuring Nix</h1>
+    <span class="text-2xl font-bold">{totalTime}</span>
+    <span class="text-sm text-gray-300">
       {#if isRunning}
         Running timer: <span class="font-semibold">{duration}</span>
       {:else}
