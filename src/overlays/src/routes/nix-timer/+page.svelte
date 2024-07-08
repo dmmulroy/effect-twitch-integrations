@@ -59,15 +59,11 @@
 </script>
 
 <div
-  class="mx-auto mt-5 flex h-[120px] w-80 flex-row items-center justify-between gap-4 rounded-md bg-[#24273a] p-2 text-[#cad3f5] shadow-lg"
+  class="mx-auto mt-5 flex h-[120px] w-80 flex-row items-center justify-between gap-4 rounded-md bg-[#24273a] p-2 p-2 text-[#cad3f5] shadow-lg"
 >
   <div class="flex flex-col gap-2">
     <h1>Time spent configuring Nix</h1>
-    <span class="text-2xl font-bold"
-      >{formatDuration(
-        intervalToDuration({ start: 0, end: data.totalTime }),
-      )}</span
-    >
+    <span class="text-2xl font-bold">{data.totalTime}</span>
     <span class="text-sm text-gray-300">
       {#if isRunning}
         Running timer: <span class="font-semibold">{duration}</span>
