@@ -7,7 +7,7 @@
 
   const { totalTime, currentStartTime } = data;
 
-  $effect(() => console.log({ totalTime, currentStartTime }));
+  $effect(() => console.log(data));
 
   let isRunning = $derived(currentStartTime !== undefined);
 
