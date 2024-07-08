@@ -5,8 +5,6 @@
 
   let { data } = $props();
 
-  $effect(() => console.log(data));
-
   let isRunning = $derived(data.currentStartTime !== undefined);
 
   let duration = $state(
