@@ -22,6 +22,7 @@
 
     const updateDuration = setInterval(() => {
       if (isRunning) {
+        console.log('duration: ', duration);
         duration = formatDuration({
           seconds: (currentStartTime ?? 0) / 1000,
         });
