@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { invalidate } from '$app/navigation';
-  import { formatDuration } from 'date-fns';
+  import { formatDistanceToNow, formatDuration } from 'date-fns';
 
   let { data } = $props();
 
@@ -12,8 +12,7 @@
   let isRunning = $derived(currentStartTime !== undefined);
 
   let duration = $state(
-    formatDuration({ seconds: (currentStartTime ?? 0) / 1000 }),
-  );
+    currentStartTime ? formatDistanceToNow(new Date(currentStartTime)) : undefined);
 
   onMount(() => {
     const revalidateInterval = setInterval(() => {
@@ -23,11 +22,9 @@
     const updateDuration = setInterval(() => {
       if (isRunning) {
         console.log('duration: ', duration);
-        duration = formatDuration({
-          seconds: (currentStartTime ?? 0) / 1000,
-        });
+        duration = currentStartTime ? formatDistanceToNow(new Date(currentStartTime)) : undefined;
       }
-    });
+    }, 1000);
 
     return () => {
       clearInterval(revalidateInterval);
