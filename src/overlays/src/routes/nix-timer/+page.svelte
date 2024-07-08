@@ -5,13 +5,14 @@
 
   let { data } = $props();
 
-  const { totalTime, currentTimerStartTime } = data;
+  const { totalTime, currentStartTime } = data;
 
-  $effect(() => console.log({totalTime, currentTimerStartTime }))
+  $effect(() => console.log({totalTime, currentStartTime }))
 
-  let isRunning = $derived(currentTimerStartTime !== undefined);
+  let isRunning = $derived(currentStartTime !== undefined);
+
   let duration = $state(
-    formatDuration({ seconds: (currentTimerStartTime ?? 0) / 1000 }),
+    formatDuration({ seconds: (currentStartTime ?? 0) / 1000 }),
   );
 
   onMount(() => {
@@ -20,10 +21,9 @@
     }, 5000);
 
     const updateDuration = setInterval(() => {
-      console.log(data);
       if (isRunning) {
         duration = formatDuration({
-          seconds: (currentTimerStartTime ?? 0) / 1000,
+          seconds: (currentStartTime ?? 0) / 1000,
         });
       }
     });

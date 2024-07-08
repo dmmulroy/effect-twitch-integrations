@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 
 export type NixTimerState = {
-  currentTimerStartTime: number | undefined;
+  currentStartTime: number | undefined;
   totalTime: number;
 };
 
@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ fetch, depends }) => {
   depends('nix-timer');
 
   return {
-    currentTimerStartTime: data.currentTimerStartTime ?? undefined,
+    currentStartTime: data.currentStartTime ?? undefined,
     totalTime: data.totalTime,
   };
 };
