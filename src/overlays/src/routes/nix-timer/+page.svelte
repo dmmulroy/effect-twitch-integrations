@@ -14,8 +14,14 @@
   let duration = $state(
     currentStartTime
       ? formatDuration(
-          intervalToDuration({ start: 0, end: currentStartTime }),
-          { zero: true, delimiter: ':' },
+          intervalToDuration({ start: currentStartTime, end: Date.now() }),
+          {
+            zero: true,
+            delimiter: ':',
+            locale: {
+              formatDistance: (_token, count) => String(count).padStart(2, '0'),
+            },
+          },
         )
       : undefined,
   );
@@ -30,8 +36,15 @@
         console.log('duration: ', duration);
         duration = currentStartTime
           ? formatDuration(
-              intervalToDuration({ start: 0, end: currentStartTime }),
-              { zero: true, delimiter: ':' },
+              intervalToDuration({ start: currentStartTime, end: Date.now() }),
+              {
+                zero: true,
+                delimiter: ':',
+                locale: {
+                  formatDistance: (_token, count) =>
+                    String(count).padStart(2, '0'),
+                },
+              },
             )
           : undefined;
       }
