@@ -5,16 +5,14 @@
 
   let { data } = $props();
 
-  const { totalTime, currentStartTime } = data;
-
   $effect(() => console.log(data));
 
-  let isRunning = $derived(currentStartTime !== undefined);
+  let isRunning = $derived(data.currentStartTime !== undefined);
 
   let duration = $state(
-    currentStartTime
+    data.currentStartTime
       ? formatDuration(
-          intervalToDuration({ start: currentStartTime, end: Date.now() }),
+          intervalToDuration({ start: data.currentStartTime, end: Date.now() }),
           {
             zero: true,
             delimiter: ':',
@@ -34,9 +32,12 @@
     const updateDuration = setInterval(() => {
       if (isRunning) {
         console.log('duration: ', duration);
-        duration = currentStartTime
+        duration = data.currentStartTime
           ? formatDuration(
-              intervalToDuration({ start: currentStartTime, end: Date.now() }),
+              intervalToDuration({
+                start: data.currentStartTime,
+                end: Date.now(),
+              }),
               {
                 zero: true,
                 delimiter: ':',
@@ -62,7 +63,11 @@
 >
   <div class="flex flex-col gap-2">
     <h1>Time spent configuring Nix</h1>
-    <span class="text-2xl font-bold">{totalTime}</span>
+    <span class="text-2xl font-bold"
+      >{formatDuration(
+        intervalToDuration({ start: 0, end: data.totalTime }),
+      )}</span
+    >
     <span class="text-sm text-gray-300">
       {#if isRunning}
         Running timer: <span class="font-semibold">{duration}</span>

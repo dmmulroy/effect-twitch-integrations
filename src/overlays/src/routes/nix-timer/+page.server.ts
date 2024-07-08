@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ fetch, depends }) => {
     'https://twitch-integrations.fly.dev/nix-timer',
   ).then((res) => res.json());
 
-  console.log('load fired!')
+  console.log('load fired!');
 
   depends('nix-timer');
 
