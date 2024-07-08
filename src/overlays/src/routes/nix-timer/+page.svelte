@@ -63,7 +63,11 @@
 >
   <div class="flex flex-col gap-2">
     <h1>Time spent configuring Nix</h1>
-    <span class="text-2xl font-bold">{data.totalTime}</span>
+    <span class="text-2xl font-bold"
+      >{formatDuration(
+        intervalToDuration({ start: 0, end: data.totalTime }),
+      )}</span
+    >
     <span class="text-sm text-gray-300">
       {#if isRunning}
         Running timer: <span class="font-semibold">{duration}</span>
