@@ -12,7 +12,7 @@
   let isRunning = $derived(currentStartTime !== undefined);
 
   let duration = $state(
-    currentStartTime ? formatDistanceToNow(new Date(currentStartTime)) : undefined);
+    currentStartTime ? formatDistanceToNow(new Date(currentStartTime), { includeSeconds: true }) : undefined);
 
   onMount(() => {
     const revalidateInterval = setInterval(() => {
@@ -22,7 +22,7 @@
     const updateDuration = setInterval(() => {
       if (isRunning) {
         console.log('duration: ', duration);
-        duration = currentStartTime ? formatDistanceToNow(new Date(currentStartTime)) : undefined;
+        duration = currentStartTime ? formatDistanceToNow(new Date(currentStartTime), { includeSeconds: true }) : undefined;
       }
     }, 1000);
 
