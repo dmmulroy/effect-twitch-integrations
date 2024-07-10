@@ -35,14 +35,33 @@ const make = Effect.gen(function* () {
 
         const songId = yield* getSongIdFromUrl(message.url).pipe(handleError);
 
+        yield* Effect.log(`SongId: ${songId}`);
+
         yield* spotify
-          .use((client) =>
-            client.player.addItemToPlaybackQueue(`spotify:track:${songId}`),
-          )
+          .use(async (client) => {
+            try {
+              await client.player.addItemToPlaybackQueue(
+                `spotify:track:${songId}`,
+              );
+            } catch (error) {
+              console.error(
+                `Error in client.player.addItemToPlaybackQueue: ${String(error)}`,
+              );
+              throw error;
+            }
+          })
           .pipe(handleError);
 
         const track = yield* spotify
-          .use((client) => client.tracks.get(songId))
+          .use(async (client) => {
+            try {
+              const track = await client.tracks.get(songId);
+              return track;
+            } catch (error) {
+              console.error(`Error in client.tracks.get: ${String(error)}`);
+              throw error;
+            }
+          })
           .pipe(handleError);
 
         yield* pubsub.publish(

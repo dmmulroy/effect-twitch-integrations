@@ -31,16 +31,9 @@ const make = Effect.gen(function* () {
       const persistedQueue = yield* fs
         .readFileString("src/nix-timer/persistence.json")
         .pipe(
-          Effect.andThen((json) =>
-            Effect.try({
-              try: (): NixTimerState => JSON.parse(json),
-              catch: (): NixTimerState => {
-                return {
-                  totalTime: 0,
-                  currentTimerStartTime: undefined,
-                };
-              },
-            }),
+          Effect.andThen((json) => Effect.try(() => JSON.parse(json))),
+          Effect.orElse(() =>
+            Effect.succeed({ totalTime: 0, currentTimerStartTime: undefined }),
           ),
         );
 

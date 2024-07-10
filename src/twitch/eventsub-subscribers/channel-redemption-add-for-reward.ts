@@ -14,6 +14,7 @@ const make = Effect.gen(function* () {
   yield* Effect.acquireRelease(
     Effect.sync(() =>
       eventsub.onChannelRedemptionAdd(config.broadcasterId, (event) => {
+        console.log(JSON.stringify({ event }));
         switch (event.rewardId) {
           case config.songRequestRewardId: {
             return pubsub.unsafePublish(
