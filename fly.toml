@@ -8,11 +8,16 @@ primary_region = "ord"
 
 [build]
 
+[mounts]
+  source = "nix_timer"
+  destination = "/data/nix_timer"
+  processes = ["app"]
+
 [http_service]
   internal_port = 3000
   force_https = true
   auto_stop_machines = false
-  auto_start_machines = false
+  auto_start_machines = true
   min_machines_running = 0
   processes = ["app"]
 

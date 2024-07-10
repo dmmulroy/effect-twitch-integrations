@@ -108,7 +108,7 @@ const make = Effect.gen(function* (_) {
   );
 
   yield* Effect.forkScoped(
-    Effect.repeat(syncQueue(undefined), Schedule.fixed("60 seconds")),
+    Effect.repeat(syncQueue(undefined), Schedule.fixed("5 seconds")),
   );
 
   return {

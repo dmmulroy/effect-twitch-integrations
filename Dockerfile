@@ -6,7 +6,7 @@ COPY . /app/
 WORKDIR /app
 
 # Add a volume
-VOLUME /app/src/nix-timer/
+VOLUME /data/nix_timer
 
 CMD ["bun", "install"]
 

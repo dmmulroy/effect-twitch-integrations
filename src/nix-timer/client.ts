@@ -25,17 +25,24 @@ const make = Effect.gen(function* () {
   yield* Effect.logInfo(`Starting NixTimer`);
 
   const fs = yield* FileSystem.FileSystem;
+  const volumeMountExists = yield* fs.exists(
+    "/data/nix_timer/persistence.json",
+  );
+
+  const path = volumeMountExists
+    ? "/data/nix_timer/persistence.json"
+    : "src/nix-timer/persistence.json";
+
+  yield* Effect.logInfo(`Using path "${path}" for persistence`);
 
   const stateRef = yield* Effect.acquireRelease(
     Effect.gen(function* () {
-      const persistedQueue = yield* fs
-        .readFileString("src/nix-timer/persistence.json")
-        .pipe(
-          Effect.andThen((json) => Effect.try(() => JSON.parse(json))),
-          Effect.orElse(() =>
-            Effect.succeed({ totalTime: 0, currentTimerStartTime: undefined }),
-          ),
-        );
+      const persistedQueue = yield* fs.readFileString(path).pipe(
+        Effect.andThen((json) => Effect.try(() => JSON.parse(json))),
+        Effect.orElse(() =>
+          Effect.succeed({ totalTime: 0, currentTimerStartTime: undefined }),
+        ),
+      );
 
       const stateRef =
         yield* SynchronizedRef.make<NixTimerState>(persistedQueue);
@@ -48,15 +55,10 @@ const make = Effect.gen(function* () {
       return Effect.gen(function* () {
         const state = yield* SynchronizedRef.get(stateRef);
 
-        yield* fs
-          .writeFileString(
-            "src/nix-timer/persistence.json",
-            JSON.stringify(state, null, 2),
-          )
-          .pipe(
-            Effect.tapError(Effect.logError),
-            Effect.catchAll((_) => Effect.void),
-          );
+        yield* fs.writeFileString(path, JSON.stringify(state, null, 2)).pipe(
+          Effect.tapError(Effect.logError),
+          Effect.catchAll((_) => Effect.void),
+        );
 
         yield* Effect.logInfo("NixTimer stopped");
       });
@@ -113,6 +115,11 @@ const make = Effect.gen(function* () {
 
         state.totalTime += elapsedTime;
         state.currentTimerStartTime = undefined;
+
+        yield* fs.writeFileString(path, JSON.stringify(state, null, 2)).pipe(
+          Effect.tapError(Effect.logError),
+          Effect.catchAll((_) => Effect.void),
+        );
 
         return state;
       });
