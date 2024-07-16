@@ -6,7 +6,7 @@ export type NixTimerState = {
 };
 
 export type Data = {
-  data: NixTimerState;
+ data: NixTimerState;
 };
 
 export const load: PageServerLoad = async ({ fetch, depends }) => {
