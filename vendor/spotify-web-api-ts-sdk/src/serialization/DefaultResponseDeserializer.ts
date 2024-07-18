@@ -13,6 +13,7 @@ export default class DefaultResponseDeserializer
         const json = JSON.parse(text);
         return json as TReturnType;
       } catch (error) {
+        console.error("error in deserialize: ", String(error));
         if (error instanceof SyntaxError && response.url.includes("queue")) {
           return {} as TReturnType;
         }

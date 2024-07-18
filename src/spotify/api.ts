@@ -4,7 +4,7 @@ import {
   SpotifyApi,
   type AccessToken,
 } from "@spotify/web-api-ts-sdk";
-import { Context, Effect, Encoding, Layer, Secret } from "effect";
+import { Context, Effect, Encoding, Layer, Redacted } from "effect";
 import { SpotifyApiClientInstantiationError, SpotifyError } from "./error";
 import { SpotifyConfig } from "./config";
 
@@ -22,14 +22,14 @@ const make = Effect.gen(function* () {
     try: async () => {
       const client = SpotifyApi.withAccessToken(
         config.clientId,
-        Secret.value(config.clientSecret),
+        Redacted.value(config.clientSecret),
         config.accessToken,
       );
 
       client.switchAuthenticationStrategy(
         new ProvidedAccessTokenStrategy(
           config.clientId,
-          Secret.value(config.clientSecret),
+          Redacted.value(config.clientSecret),
           config.accessToken,
           async (clientId, clientSecret, accessToken) => {
             const refreshedToken =
@@ -81,7 +81,7 @@ export function requestAccessToken(code: string) {
   return Effect.gen(function* () {
     const config = yield* SpotifyConfig;
     const authorizationHeader = `Basic ${Encoding.encodeBase64(
-      `${config.clientId}:${Secret.value(config.clientSecret)}`,
+      `${config.clientId}:${Redacted.value(config.clientSecret)}`,
     )}`;
 
     // TODO: Refactor to platform HttpClient
@@ -112,6 +112,9 @@ export function requestAccessToken(code: string) {
 
 function encodeFormData(data: object) {
   return Object.keys(data)
-    .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]))
+    .map(
+      // @ts-expect-error
+      (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]),
+    )
     .join("&");
 }
