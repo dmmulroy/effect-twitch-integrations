@@ -58,5 +58,8 @@
       "vitest"
     ],
     "trace": true
-  }
+  },
+  "trustedDependencies": [
+    "playwright"
+  ]
 }
