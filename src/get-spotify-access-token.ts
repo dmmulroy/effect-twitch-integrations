@@ -7,40 +7,40 @@ import { requestAccessToken } from "./spotify/api";
 import { AccessTokenHelpers } from "@spotify/web-api-ts-sdk";
 
 const BunTime = {
-	funTime: BunRuntime.runMain,
+  funTime: BunRuntime.runMain,
 };
 
 const getAccessToken = Effect.gen(function* () {
-	const config = yield* SpotifyConfig;
-	const redirectServer = yield* RedirectServer;
+  const config = yield* SpotifyConfig;
+  const redirectServer = yield* RedirectServer;
 
-	const mailbox = yield* redirectServer.getMailbox();
+  const mailbox = yield* redirectServer.getMailbox();
 
-	const searchParams = new URLSearchParams({
-		response_type: "code",
-		client_id: config.clientId,
-		scope: config.scopes.join(" "),
-		redirect_uri: `http://localhost:${config.port}/${config.redirectServerPath}`,
-		state: "foo",
-		show_dialog: "true",
-	});
+  const searchParams = new URLSearchParams({
+    response_type: "code",
+    client_id: config.clientId,
+    scope: config.scopes.join(" "),
+    redirect_uri: `http://localhost:${config.port}/${config.redirectServerPath}`,
+    state: "foo",
+    show_dialog: "true",
+  });
 
-	const authorizeUrl = new URL(
-		`https://accounts.spotify.com/authorize?${searchParams.toString()}`,
-	);
+  const authorizeUrl = new URL(
+    `https://accounts.spotify.com/authorize?${searchParams.toString()}`,
+  );
 
-	yield* Browser.open(authorizeUrl);
+  yield* Browser.open(authorizeUrl);
 
-	const code = yield* Deferred.await(mailbox);
+  const code = yield* Deferred.await(mailbox);
 
-	const accessToken = yield* requestAccessToken(code);
+  const accessToken = yield* requestAccessToken(code);
 
-	yield* Effect.promise(() =>
-		Bun.write(
-			"src/do_not_open_on_stream/access-token.json",
-			JSON.stringify(AccessTokenHelpers.toCachable(accessToken), null, 2),
-		),
-	);
+  yield* Effect.promise(() =>
+    Bun.write(
+      "src/do_not_open_on_stream/access-token.json",
+      JSON.stringify(AccessTokenHelpers.toCachable(accessToken), null, 2),
+    ),
+  );
 }).pipe(Effect.provide(RedirectServer.Live));
 
 BunTime.funTime(getAccessToken);
