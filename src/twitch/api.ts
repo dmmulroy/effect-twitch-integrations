@@ -4,30 +4,29 @@ import { TwitchError } from "./error";
 import { TwitchAuthProvider } from "./auth-provider";
 
 export type ITwitchApiClient = Readonly<{
-	client: ApiClient;
-	use: <A>(
-		fn: (client: ApiClient) => Promise<A>,
-	) => Effect.Effect<A, TwitchError, never>;
+  client: ApiClient;
+  use: <A>(
+    fn: (client: ApiClient) => Promise<A>,
+  ) => Effect.Effect<A, TwitchError, never>;
 }>;
 
 const make = Effect.gen(function* () {
-	const authProvider = yield* TwitchAuthProvider;
-	const client = new ApiClient({ authProvider });
+  const authProvider = yield* TwitchAuthProvider;
+  const client = new ApiClient({ authProvider });
+  const use = <A>(f: (client: ApiClient) => Promise<A>) =>
+    Effect.tryPromise({
+      try: () => f(client),
+      catch: (error) => new TwitchError({ cause: error }),
+    });
 
-	const use = <A>(f: (client: ApiClient) => Promise<A>) =>
-		Effect.tryPromise({
-			try: () => f(client),
-			catch: (error) => new TwitchError({ cause: error }),
-		});
-
-	return { use, client } as const;
+  return { use, client } as const;
 });
 
 export class TwitchApiClient extends Context.Tag("app/Twitch")<
-	TwitchApiClient,
-	ITwitchApiClient
+  TwitchApiClient,
+  ITwitchApiClient
 >() {
-	static Live = Layer.effect(this, make).pipe(
-		Layer.provide(TwitchAuthProvider.RefreshingAuthProviderLive),
-	);
+  static Live = Layer.effect(this, make).pipe(
+    Layer.provide(TwitchAuthProvider.RefreshingAuthProviderLive),
+  );
 }

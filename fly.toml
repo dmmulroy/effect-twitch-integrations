@@ -5,6 +5,7 @@
 
 app = "twitch-integrations"
 primary_region = "ord"
+min_machines_running = 0
 
 [build]
 
